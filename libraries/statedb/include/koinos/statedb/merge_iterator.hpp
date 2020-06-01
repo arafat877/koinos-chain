@@ -1,5 +1,5 @@
 #pragma once
-#include <chainbase/undo_state.hpp>
+#include <koinos/statedb/state_delta.hpp>
 
 #include <boost/container/deque.hpp>
 
@@ -9,9 +9,7 @@
 #include <boost/multi_index/member.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 
-#include <fc/log/logger.hpp>
-
-namespace chainbase {
+namespace koinos::statedb {
 
    using namespace boost::multi_index;
 
@@ -27,15 +25,14 @@ namespace chainbase {
       public:
          typedef typename MultiIndexType::value_type                                      value_type;
       private:
-         typedef typename value_type::id_type                                             id_type;
          typedef decltype( ((MultiIndexType*)nullptr)->template get< IndexedByType >() )  by_index_type;
          typedef typename by_index_type::iter_type                                        iter_type;
          typedef typename by_index_type::bmic_type::key_type                              key_type;
          typedef typename by_index_type::bmic_type::key_from_value                        key_from_value_type;
          typedef typename by_index_type::bmic_type::key_compare                           key_compare_type;
          typedef typename by_index_type::bmic_type::value_compare                         value_compare_type;
-         typedef undo_state< MultiIndexType >                                             undo_state_type;
-         typedef std::shared_ptr< undo_state_type >                                       undo_state_ptr;
+         typedef state_delta< MultiIndexType >                                            state_delta_type;
+         typedef std::shared_ptr< state_delta_type >                                      state_delta_ptr;
 
          struct iterator_wrapper
          {
@@ -130,13 +127,13 @@ namespace chainbase {
             >
          > iter_revision_index_type;
 
-         iter_revision_index_type                    iter_revision_index;
-         const boost::container::deque< undo_state_ptr >& undo_deque;
-         uint64_t                                base_revision = 0;
+         iter_revision_index_type                           iter_revision_index;
+         const boost::container::deque< state_delta_ptr >&  undo_deque;
+         uint64_t                                           base_revision = 0;
 
       public:
          template< typename Initializer >
-         merge_iterator( const boost::container::deque< undo_state_ptr >& deque, Initializer&& init ) :
+         merge_iterator( const boost::container::deque< state_delta_ptr >& deque, Initializer&& init ) :
             undo_deque( deque )
          {
             for( const auto& undo : undo_deque )
@@ -153,7 +150,7 @@ namespace chainbase {
             resolve_conflicts();
          }
 
-         merge_iterator( const boost::container::deque< undo_state_ptr >& deque ) :
+         merge_iterator( const boost::container::deque< state_delta_ptr >& deque ) :
             undo_deque( deque )
          {}
 
@@ -343,7 +340,7 @@ namespace chainbase {
          {
             bool dirty = false;
 
-            for( size_t i = undo_deque.size() - 1; itr->revision < uint64_t(undo_deque[i]->revision()) && !dirty; --i )
+            for( int i = undo_deque.size() - 1; itr->revision < undo_deque[i]->revision() && !dirty; --i )
             {
                dirty = undo_deque[i]->is_modified( itr->iter->id );
             }
@@ -370,4 +367,85 @@ namespace chainbase {
          }
    };
 
-} // chainbase
+   template< typename MultiIndexType, typename IndexedByType >
+   class merge_index
+   {
+      public:
+         typedef MultiIndexType                                                        index_type;
+         typedef state_delta< index_type >                                             state_delta_type;
+         typedef decltype( ((index_type*)nullptr)->template get< IndexedByType >() )   by_index_type;
+         typedef typename index_type::value_type                                       value_type;
+         typedef merge_iterator< index_type, IndexedByType >                           iterator_type;
+
+         merge_index( const boost::container::deque< std::weak_ptr< state_delta_type > >& d )
+         {
+            for( auto& w : d )
+            {
+               auto maybe_state = w.lock();
+               if( maybe_state ) _deque.push_back( maybe_state );
+            }
+         }
+
+         template< typename CompatibleKey >
+         iterator_type lower_bound( CompatibleKey&& key ) const
+         {
+            return iterator_type( _deque, [&]( by_index_type& idx )
+            {
+               return idx.lower_bound( key );
+            });
+         }
+
+         template< typename CompatibleKey >
+         iterator_type upper_bound( CompatibleKey&& key ) const
+         {
+            return iterator_type( _deque, [&]( by_index_type& idx )
+            {
+               return idx.upper_bound( key );
+            });
+         }
+
+         template< typename CompatibleKey >
+         std::pair< iterator_type, iterator_type > equal_range( CompatibleKey&& key ) const
+         {
+            return std::make_pair< iterator_type, iterator_type >(
+               lower_bound( key ), upper_bound( key ) );
+         }
+
+         iterator_type begin() const
+         {
+            return iterator_type( _deque, [&]( by_index_type& idx )
+            {
+               return idx.begin();
+            });
+         }
+
+         iterator_type end() const
+         {
+            return iterator_type( _deque, [&]( by_index_type& idx )
+            {
+               return idx.end();
+            });
+         }
+
+         template< typename CompatibleKey >
+         iterator_type find( CompatibleKey&& key ) const
+         {
+            return iterator_type( _deque, [&]( by_index_type& idx )
+            {
+               return idx.find( key );
+            });
+         }
+
+         iterator_type iterator_to( const value_type& v ) const
+         {
+            return iterator_type( _deque, [&]( by_index_type& idx )
+            {
+               auto itr = idx.iterator_to( v );
+               return itr != idx.end() ? itr : idx.upper_bound( v );
+            });
+         }
+
+         boost::container::deque< std::shared_ptr< state_delta_type > > _deque;
+   };
+
+} // koinos::statedb
