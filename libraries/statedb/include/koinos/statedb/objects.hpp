@@ -2,6 +2,7 @@
 
 #include <koinos/statedb/koinos_object_types.hpp>
 #include <koinos/statedb/multi_index_types.hpp>
+#include <koinos/pack/rt/reflect.hpp>
 
 namespace koinos { namespace statedb {
 
@@ -42,9 +43,9 @@ typedef multi_index_container<
 
 } }
 
-FC_REFLECT_ENUM( koinos::statedb::object_type,
+KOINOS_REFLECT_ENUM( koinos::statedb::object_type,
    (state_object_type)
    )
-FC_REFLECT( koinos::statedb::state_object,
+KOINOS_REFLECT( koinos::statedb::state_object,
              (id)(space)(key)(value) )
 CHAINBASE_SET_INDEX_TYPE( koinos::statedb::state_object, koinos::statedb::state_object_index )

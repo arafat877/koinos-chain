@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#include <fc/reflect/reflect.hpp>
+#include <koinos/pack/rt/reflect.hpp>
 #include <iosfwd>
 
 namespace koinos { namespace chain {
@@ -45,7 +45,7 @@ namespace koinos { namespace chain {
    private:
       uint64_t value = 0;
 
-      friend struct fc::reflector<name>;
+      friend struct pack::reflector<name>;
       friend void fc::from_variant(const fc::variant& v, koinos::chain::name& check);
 
       void set( std::string_view str );
@@ -101,4 +101,4 @@ namespace std {
    };
 };
 
-FC_REFLECT( koinos::chain::name, (value) )
+KOINOS_REFLECT( koinos::chain::name, (value) )

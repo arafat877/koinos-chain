@@ -1,5 +1,6 @@
 #pragma once
 #include <koinos/chain/types_fwd.hpp>
+#include <koinos/pack/rt/reflect.hpp>
 #include <fc/reflect/variant.hpp>
 
 #include <koinos/chain/exceptions.hpp>
@@ -218,14 +219,14 @@ void unpack( Stream& s, boost::interprocess::flat_map< K, V, C, A >& value, uint
 
 } } // namespace fc::raw
 
-FC_REFLECT_ENUM( koinos::chain::object_type,
-                 (null_object_type)
-                 (table_id_object_type)
-                 (key_value_object_type)
-                 (index64_object_type)
-                 (index128_object_type)
-                 (index256_object_type)
-                 (index_double_object_type)
-                 (index_long_double_object_type)
-                 (OBJECT_TYPE_COUNT)
+KOINOS_REFLECT_ENUM( koinos::chain::object_type,
+                   (null_object_type)
+                   (table_id_object_type)
+                   (key_value_object_type)
+                   (index64_object_type)
+                   (index128_object_type)
+                   (index256_object_type)
+                   (index_double_object_type)
+                   (index_long_double_object_type)
+                   (OBJECT_TYPE_COUNT)
                )

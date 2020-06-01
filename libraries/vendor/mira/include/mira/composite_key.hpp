@@ -10,6 +10,7 @@
 
 #include <mira/composite_key_fwd.hpp>
 #include <mira/slice_pack.hpp>
+#include <koinos/pack/rt/reflect.hpp>
 
 #include <boost/config.hpp> /* keep it first to prevent nasty warns in MSVC */
 #include <boost/functional/hash_fwd.hpp>
@@ -1585,7 +1586,7 @@ struct get_typename< mira::multi_index::composite_key_result< T > >
    static const char* name()
    {
       static std::string n = std::string( "mira::multi_index::composite_key_result<" )
-         + get_typename< typename T::value_type >::name()
+         + koinos::pack::get_typename< typename T::value_type >::name()
          + ">";
       return n.c_str();
    }
