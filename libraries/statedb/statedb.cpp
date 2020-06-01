@@ -188,7 +188,7 @@ state_node_ptr state_db_impl::get_node_at_revision( uint64_t revision, const sta
 
    auto node_itr = _index.find( delta->id() );
    KOINOS_ASSERT( node_itr != _index.end(), internal_error,
-      "Could not find state node associated with linked state_delta ${id}", ("id", delta->id()) );
+      "Could not find state node associated with linked state_delta ${id}", ("id", "TODO fix this") );
    return *node_itr;
 }
 
@@ -221,7 +221,7 @@ void state_db_impl::finalize_node( const state_node_id& node_id )
 {
    KOINOS_ASSERT( is_open(), database_not_open, "Database is not open", () );
    auto node = get_node( node_id );
-   KOINOS_ASSERT( node, illegal_argument, "Node ${n} not found.", ("n", node_id) );
+   KOINOS_ASSERT( node, illegal_argument, "Node ${n} not found.", ("n", "TODO fix this") );
 
    node->impl->_is_writable = false;
 
@@ -274,7 +274,7 @@ void state_db_impl::commit_node( const state_node_id& node_id )
    KOINOS_ASSERT( is_open(), database_not_open, "Database is not open", () );
    KOINOS_ASSERT( node_id != _root->id(), illegal_argument, "Cannot commit root node. Root node already committed." );
    auto node = get_node( node_id );
-   KOINOS_ASSERT( node, illegal_argument, "Node ${n} not found.", ("n", node_id) );
+   KOINOS_ASSERT( node, illegal_argument, "Node ${n} not found.", ("n", "TODO fix this") );
 
    flat_set< state_node_id > whitelist{ node->id() };
 
