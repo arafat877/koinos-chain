@@ -9,5 +9,10 @@ fi
 
 mkdir build
 cd build
-cmake -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} ..
-make -j3
+if [ "$TRAVIS_OS_NAME" = "osx" ]; then
+   cmake -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -GXcode ..
+   cmake --build . -- -jobs 3
+else
+   cmake -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} ..
+   make -j3
+fi
