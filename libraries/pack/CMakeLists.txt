@@ -42,12 +42,19 @@ set(KOINOS_PACK_GEN_FILES
    "${KOINOS_PACK_GEN_DIR}/koinos/pack/rt/util/variant_helpers.hpp"
    )
 
+if( NOT DEFINED KOINOS_PYTHON )
+   set( KOINOS_PYTHON "python3" )
+   message( STATUS "KOINOS_PYTHON is using system Python" )
+endif()
+
+message( STATUS "KOINOS_PYTHON is ${KOINOS_PYTHON}" )
+
 add_custom_target(mkdir_schema ALL
     COMMAND ${CMAKE_COMMAND} -E make_directory ${KOINOS_SCHEMA_DIR})
 
 add_custom_command(
    COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=${KOINOS_REFLECT_PYTHONPATH}
-   python3 -m koinos_reflect.analyze
+   ${KOINOS_PYTHON} -m koinos_reflect.analyze
    ${KOINOS_REFLECT_SOURCES}
    -s
    -o ${KOINOS_SCHEMA_DIR}/block.schema
@@ -57,7 +64,7 @@ add_custom_command(
 
 add_custom_command(
    COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=${KOINOS_REFLECT_PYTHONPATH}
-   python3 -m koinos_codegen.codegen
+   ${KOINOS_PYTHON} -m koinos_codegen.codegen
    --target-path "${KOINOS_REFLECT_TEMPLATE_DIR}"
    --target cpp
    -p koinos/pack
