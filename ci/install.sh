@@ -17,11 +17,10 @@ elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
    brew install cmake \
       boost \
       openssl \
-      python3 \
       zlib \
       snappy \
       bzip2 \
       gflags
 fi
 
-pip3 install dataclasses-json Jinja2 importlib_resources pluginbase
+pip3 install --user dataclasses-json Jinja2 importlib_resources pluginbase
