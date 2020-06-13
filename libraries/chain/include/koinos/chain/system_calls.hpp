@@ -164,18 +164,6 @@ struct system_api final
    SYSTEM_CALL_DECLARE( vl_blob, invoke_xcall, uint32_t xid, const vl_blob& args );
 
    SYSTEM_CALL_DECLARE( void, prints, null_terminated_ptr str );
-
-   SYSTEM_CALL_DECLARE( bool, verify_block_header, const crypto::recoverable_signature& sig, const crypto::multihash_type& digest );
-
-   SYSTEM_CALL_DECLARE( void, apply_block, const protocol::active_block_data& b );
-   SYSTEM_CALL_DECLARE( void, apply_transaction, const protocol::transaction_type& t );
-   SYSTEM_CALL_DECLARE( void, apply_upload_contract_operation, const protocol::create_system_contract_operation& o );
-   SYSTEM_CALL_DECLARE( void, apply_execute_contract_operation, const protocol::contract_call_operation& op );
-
-   SYSTEM_CALL_DECLARE( bool, db_put_object, const statedb::object_space& space, const statedb::object_key& key, const vl_blob& obj );
-   SYSTEM_CALL_DECLARE( vl_blob, db_get_object, const statedb::object_space& space, const statedb::object_key& key, int32_t object_size_hint = -1 );
-   SYSTEM_CALL_DECLARE( vl_blob, db_get_next_object, const statedb::object_space& space, const statedb::object_key& key, int32_t object_size_hint = -1 );
-   SYSTEM_CALL_DECLARE( vl_blob, db_get_prev_object, const statedb::object_space& space, const statedb::object_key& key, int32_t object_size_hint = -1 );
 };
 
 // For any given system call, two slots are used. The first definition
@@ -291,19 +279,6 @@ SYSTEM_CALL_SLOTS(
    (_eosio_ui64_to_f64)
 
    (prints)
-
-// We might want to move these calls later, but append them for now
-   (verify_block_header)
-
-   (apply_block)
-   (apply_transaction)
-   (apply_upload_contract_operation)
-   (apply_execute_contract_operation)
-
-   (db_put_object)
-   (db_get_object)
-   (db_get_next_object)
-   (db_get_prev_object)
 
    (invoke_thunk)
    (invoke_xcall)

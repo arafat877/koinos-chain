@@ -85,6 +85,7 @@ void thunk_dispatcher_impl::call_thunk( thunk_id id, apply_context& ctx, protoco
 
 void thunk_dispatcher_impl::register_thunks()
 {
+   using namespace koinos::chain::thunk;
    register_thunk< hello_thunk_ret, hello_thunk_args >( 1234, thunk::hello );
 }
 
