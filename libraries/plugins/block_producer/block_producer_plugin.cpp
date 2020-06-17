@@ -155,6 +155,10 @@ void block_producer_plugin::demo_call_contract(protocol::active_block_data& acti
    auto id = crypto::hash( CRYPTO_RIPEMD160_ID, 1 );
    for (int i = 0; i < 20; i++) { call_op.contract_id.data[i] = id.digest.data[i]; }
 
+   protocol::vl_blob args;
+   args.data = vector<char> { 'T', 'E', 'S', 'T' };
+   call_op.args = args;
+
    pack::operation o = call_op;
 
    pack::transaction_type transaction;
