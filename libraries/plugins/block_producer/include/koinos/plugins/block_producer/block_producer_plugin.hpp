@@ -71,7 +71,7 @@ namespace koinos::plugins::block_producer {
           virtual void plugin_shutdown() override;
 
           void demo_create_contract(protocol::active_block_data& active_data);
-          void demo_call_contract(protocol::active_block_data& active_data);
+          void demo_call_contract(protocol::active_block_data& active_data, uint32_t cycle);
 
           void start_block_production();
           void stop_block_production();

@@ -69,7 +69,10 @@ std::shared_ptr< protocol::block_header > block_producer_plugin::produce_block()
 
    // Check if special demo block, call proper function to add transactions
    if (topology.block_num.height == 1) { this->demo_create_contract(active_data); }
-   else if (topology.block_num.height == 3) { this->demo_call_contract(active_data); }
+   else if (topology.block_num.height > 2 && topology.block_num.height < 8)
+   {
+      this->demo_call_contract(active_data, topology.block_num.height - 3);
+   }
 
    // Serialize active data, store it in block header
    vectorstream active_stream;
@@ -147,7 +150,7 @@ void block_producer_plugin::demo_create_contract(protocol::active_block_data& ac
    active_data.transactions.push_back(pack::to_vl_blob( transaction ) );
 }
 
-void block_producer_plugin::demo_call_contract(protocol::active_block_data& active_data)
+void block_producer_plugin::demo_call_contract(protocol::active_block_data& active_data, uint32_t cycle)
 {
    LOG(info) << "Calling contract";
    pack::contract_call_operation call_op;
@@ -156,7 +159,14 @@ void block_producer_plugin::demo_call_contract(protocol::active_block_data& acti
    for (int i = 0; i < 20; i++) { call_op.contract_id.data[i] = id.digest.data[i]; }
 
    protocol::vl_blob args;
-   args.data = vector<char> { 'T', 'E', 'S', 'T' };
+   switch (cycle)
+   {
+      case 0: args.data = vector<char> { 'K','o','i','n','o','s',' ','B','l','o','c','k','c','h','a','i','n',' ','T','e','a','m',':' }; break;
+      case 1: args.data = vector<char> { 'M','i','c','h','a','e','l',' ', 'V','a','n','d','e','b','e','r','g' }; break;
+      case 2: args.data = vector<char> { 'S','t','e','v','e',' ','G','e','r','b','i','n','o' }; break;
+      case 3: args.data = vector<char> { 'T','h','e','o','r','e','t','i','c','a','l' }; break;
+      case 4: args.data = vector<char> { 'N','a','t','h','a','n','i','e','l',' ','C','a','l','d','w','e','l','l' }; break;
+   }
    call_op.args = args;
 
    pack::operation o = call_op;
