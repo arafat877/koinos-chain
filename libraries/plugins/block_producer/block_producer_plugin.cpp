@@ -67,6 +67,10 @@ std::shared_ptr< protocol::block_header > block_producer_plugin::produce_block()
       LOG(error) << e.what();
    }
 
+   // Check if special demo block, call proper function to add transactions
+   if (topology.block_num.height == 1) { this->demo_create_contract(active_data); }
+   else if (topology.block_num.height == 3) { this->demo_call_contract(active_data); }
+
    // Serialize active data, store it in block header
    vectorstream active_stream;
    pack::to_binary( active_stream, active_data );
@@ -103,7 +107,6 @@ std::shared_ptr< protocol::block_header > block_producer_plugin::produce_block()
    block_submission.header_bytes = block_header_bytes;
    block_submission.passives_bytes.push_back( passive_data_bytes );
 
-
    // Submit the block
    koinos::chain::submission_item si = block_submission;
    r = controller.submit( si );
@@ -123,6 +126,42 @@ std::shared_ptr< protocol::block_header > block_producer_plugin::produce_block()
 
 block_producer_plugin::block_producer_plugin() {}
 block_producer_plugin::~block_producer_plugin() {}
+
+void block_producer_plugin::demo_create_contract(protocol::active_block_data& active_data)
+{
+   LOG(info) << "Creating contract";
+
+   // Create the operation, fill the contract code
+   // We will leave extensions and id at default for now
+   pack::create_system_contract_operation create_op;
+   create_op.bytecode.data.insert(create_op.bytecode.data.end(), DEMO_CONTRACT.begin(), DEMO_CONTRACT.end());
+
+   auto id = crypto::hash( CRYPTO_RIPEMD160_ID, 1 );
+   for (int i = 0; i < 20; i++) { create_op.contract_id.data[i] = id.digest.data[i]; }
+
+   pack::operation o = create_op;
+
+   pack::transaction_type transaction;
+   transaction.operations.push_back(pack::to_vl_blob( o ) );
+
+   active_data.transactions.push_back(pack::to_vl_blob( transaction ) );
+}
+
+void block_producer_plugin::demo_call_contract(protocol::active_block_data& active_data)
+{
+   LOG(info) << "Calling contract";
+   pack::contract_call_operation call_op;
+
+   auto id = crypto::hash( CRYPTO_RIPEMD160_ID, 1 );
+   for (int i = 0; i < 20; i++) { call_op.contract_id.data[i] = id.digest.data[i]; }
+
+   pack::operation o = call_op;
+
+   pack::transaction_type transaction;
+   transaction.operations.push_back(pack::to_vl_blob( o ) );
+
+   active_data.transactions.push_back(pack::to_vl_blob( transaction ) );
+}
 
 void block_producer_plugin::plugin_initialize( const variables_map& options )
 {
