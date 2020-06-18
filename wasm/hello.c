@@ -20,5 +20,7 @@ void prints( char* msg )
 __attribute__( (visibility("default")) )
 void apply( uint64_t a, uint64_t b, uint64_t c )
 {
-   prints( "Greetings from koinos vm" );
+   char message[64];
+   invoke_system_call( 11, message, 63, 0, 0 );
+   prints( message + 1 );
 }

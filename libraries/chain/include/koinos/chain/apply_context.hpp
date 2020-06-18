@@ -4,6 +4,8 @@
 #include <koinos/statedb/statedb.hpp>
 #include <koinos/pack/rt/basetypes.hpp>
 
+#include <koinos/pack/rt/basetypes.hpp>
+
 #include <string>
 
 namespace koinos::chain {
@@ -16,7 +18,8 @@ class apply_context
       apply_context() {}
 
    /// Console methods:
-      void console_append( const std::string& val ) {
+      void console_append( const std::string& val )
+      {
          pending_console_output += val;
       }
 

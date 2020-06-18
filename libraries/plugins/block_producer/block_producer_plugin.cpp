@@ -68,8 +68,11 @@ std::shared_ptr< protocol::block_header > block_producer_plugin::produce_block()
    }
 
    // Check if special demo block, call proper function to add transactions
-   if (topology.block_num.height == 1) { this->demo_create_contract(active_data); }
-   else if (topology.block_num.height == 3) { this->demo_call_contract(active_data); }
+   if (topology.block_num == 1) { this->demo_create_contract(active_data); }
+   else if (topology.block_num > 2 && topology.block_num < 20)
+   {
+      this->demo_call_contract(active_data, topology.block_num - 3);
+   }
 
    // Serialize active data, store it in block header
    vectorstream active_stream;
@@ -134,33 +137,54 @@ void block_producer_plugin::demo_create_contract(protocol::active_block_data& ac
    // Create the operation, fill the contract code
    // We will leave extensions and id at default for now
    pack::create_system_contract_operation create_op;
-   create_op.bytecode.data.insert(create_op.bytecode.data.end(), DEMO_CONTRACT.begin(), DEMO_CONTRACT.end());
+   create_op.bytecode.insert(create_op.bytecode.end(), DEMO_CONTRACT.begin(), DEMO_CONTRACT.end());
 
    auto id = crypto::hash( CRYPTO_RIPEMD160_ID, 1 );
-   for (int i = 0; i < 20; i++) { create_op.contract_id.data[i] = id.digest.data[i]; }
+   for (int i = 0; i < 20; i++) { create_op.contract_id[i] = id.digest[i]; }
 
    pack::operation o = create_op;
 
    pack::transaction_type transaction;
-   transaction.operations.push_back(pack::to_vl_blob( o ) );
+   transaction.operations.push_back(pack::to_variable_blob( o ) );
 
-   active_data.transactions.push_back(pack::to_vl_blob( transaction ) );
+   active_data.transactions.push_back(pack::to_variable_blob( transaction ) );
 }
 
-void block_producer_plugin::demo_call_contract(protocol::active_block_data& active_data)
+void block_producer_plugin::demo_call_contract(protocol::active_block_data& active_data, uint32_t cycle)
 {
-   LOG(info) << "Calling contract";
    pack::contract_call_operation call_op;
 
    auto id = crypto::hash( CRYPTO_RIPEMD160_ID, 1 );
-   for (int i = 0; i < 20; i++) { call_op.contract_id.data[i] = id.digest.data[i]; }
+   for (int i = 0; i < 20; i++) { call_op.contract_id[i] = id.digest[i]; }
 
-   pack::operation o = call_op;
+   protocol::variable_blob args;
+   switch (cycle)
+   {
+      case 0: args = vector<char> { 'K','o','i','n','o','s',' ','B','l','o','c','k','c','h','a','i','n',' ','T','e','a','m',':',0 }; break;
+      case 1: args = vector<char> { 'M','i','c','h','a','e','l',' ', 'V','a','n','d','e','b','e','r','g',0 }; break;
+      case 2: args = vector<char> { 'S','t','e','v','e',' ','G','e','r','b','i','n','o',0 }; break;
+      case 3: args = vector<char> { 'T','h','e','o','r','e','t','i','c','a','l',0 }; break;
+      case 4: args = vector<char> { 'N','a','t','h','a','n','i','e','l',' ','C','a','l','d','w','e','l','l',0 }; break;
+      case 5: args = vector<char> { 'O','D','E','I','I',' ','T','e','a','m',':',0 }; break;
+      case 6: args = vector<char> { 'B','e','n',' ','F','l','a','n','a','g','i','n',0 }; break;
+      case 7: args = vector<char> { 'R','o','n',' ','H','a','m','e','n','a','h','a','h','e','m',0 }; break;
+      case 8: args = vector<char> { 'L','a','s','t',' ','b','u','t',' ','c','e','r','t','a','i','n','l','y',' ','n','o','t',' ','l','e','a','s','t','.','.','.',0 }; break;
+      case 9: args = vector<char> { 'A','n','d','r','e','w',' ','L','e','v','i','n','e',0 }; break;
+      case 10: args = vector<char> { 'F','i','n',0 }; break;
+      case 20: args = vector<char> { '4',' ','8',' ','1','5',' ','1','6',' ','2','3',' ','4','2',0 }; break;
+   }
+   call_op.args = args;
 
-   pack::transaction_type transaction;
-   transaction.operations.push_back(pack::to_vl_blob( o ) );
+   if( args.size() )
+   {
+      LOG(info) << "Calling contract";
+      pack::operation o = call_op;
 
-   active_data.transactions.push_back(pack::to_vl_blob( transaction ) );
+      pack::transaction_type transaction;
+      transaction.operations.push_back(pack::to_variable_blob( o ) );
+
+      active_data.transactions.push_back(pack::to_variable_blob( transaction ) );
+   }
 }
 
 void block_producer_plugin::plugin_initialize( const variables_map& options )
