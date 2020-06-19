@@ -165,7 +165,7 @@ void block_producer_plugin::demo_call_contract(protocol::active_block_data& acti
       case 2: args = vector<char> { 'S','t','e','v','e',' ','G','e','r','b','i','n','o',0 }; break;
       case 3: args = vector<char> { 'T','h','e','o','r','e','t','i','c','a','l',0 }; break;
       case 4: args = vector<char> { 'N','a','t','h','a','n','i','e','l',' ','C','a','l','d','w','e','l','l',0 }; break;
-      case 5: args = vector<char> { 'O','D','E','I','I',' ','T','e','a','m',':',0 }; break;
+      case 5: args = vector<char> { 'O','D','E','S','I',' ','T','e','a','m',':',0 }; break;
       case 6: args = vector<char> { 'B','e','n',' ','F','l','a','n','a','g','i','n',0 }; break;
       case 7: args = vector<char> { 'R','o','n',' ','H','a','m','e','n','a','h','a','h','e','m',0 }; break;
       case 8: args = vector<char> { 'L','a','s','t',' ','b','u','t',' ','c','e','r','t','a','i','n','l','y',' ','n','o','t',' ','l','e','a','s','t','.','.','.',0 }; break;
