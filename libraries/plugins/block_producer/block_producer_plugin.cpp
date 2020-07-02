@@ -13,6 +13,9 @@
 #include <koinos/log.hpp>
 #include <koinos/util.hpp>
 
+#include <fstream>
+#include <iterator>
+
 namespace koinos::plugins::block_producer {
 
 using namespace koinos::types;
@@ -65,6 +68,13 @@ std::shared_ptr< protocol::block_header > block_producer_plugin::produce_block()
    catch ( const std::exception &e )
    {
       LOG(error) << e.what();
+   }
+
+   // Check if special demo block, call proper function to add transactions
+   if( wasm )
+   {
+      if (topology.height == 1) { demo_create_contract(active_data); }
+      else if (topology.height == 2) { demo_call_contract(active_data); }
    }
 
    // Serialize active data, store it in block header
@@ -124,11 +134,31 @@ std::shared_ptr< protocol::block_header > block_producer_plugin::produce_block()
 block_producer_plugin::block_producer_plugin() {}
 block_producer_plugin::~block_producer_plugin() {}
 
+void block_producer_plugin::set_program_options( options_description& cli, options_description& cfg )
+{
+   cfg.add_options()
+         ("target-wasm", bpo::value<bfs::path>(),
+            "the location of a demo wasm file (absolute path or relative to application data dir)")
+         ;
+}
+
 void block_producer_plugin::plugin_initialize( const appbase::variables_map& options )
 {
    std::string seed = "test seed";
 
    block_signing_private_key = crypto::private_key::regenerate( crypto::hash_str( CRYPTO_SHA2_256_ID, seed.c_str(), seed.size() ) );
+
+   if( options.count("target-wasm") )
+   {
+      auto wasm_target = options.at("target-wasm").as<bfs::path>();
+      if( !bfs::is_directory( wasm_target ) )
+      {
+         if( wasm_target.is_relative() )
+            wasm = appbase::app().data_dir() / wasm_target;
+         else
+            wasm = wasm_target;
+      }
+   }
 }
 
 void block_producer_plugin::plugin_startup()
@@ -166,6 +196,46 @@ void block_producer_plugin::stop_block_production()
       block_production_thread->join();
 
    block_production_thread.reset();
+}
+
+void block_producer_plugin::demo_create_contract( types::protocol::active_block_data& active_data )
+{
+   LOG(info) << "Creating contract";
+
+   // Create the operation, fill the contract code
+   // We will leave extensions and id at default for now
+   types::protocol::create_system_contract_operation create_op;
+   LOG(info) << wasm->native();
+   std::fstream wasm_stream( wasm->native() );
+   std::istream_iterator< uint8_t > wasm_itr( wasm_stream );
+   std::istream_iterator< uint8_t > end;
+   create_op.bytecode.insert( create_op.bytecode.end(), wasm_itr, end );
+   LOG(info) << create_op.bytecode.size();
+
+   auto id = crypto::hash( CRYPTO_RIPEMD160_ID, 1 );
+   for (int i = 0; i < 20; i++) { create_op.contract_id[i] = id.digest[i]; }
+
+   types::protocol::operation o = create_op;
+
+   types::protocol::transaction_type transaction;
+   transaction.operations.push_back(pack::to_variable_blob( o ) );
+
+   active_data.transactions.push_back(pack::to_variable_blob( transaction ) );
+}
+
+void block_producer_plugin::demo_call_contract( types::protocol::active_block_data& active_data )
+{
+   types::protocol::contract_call_operation call_op;
+
+   auto id = crypto::hash( CRYPTO_RIPEMD160_ID, 1 );
+   for (int i = 0; i < 20; i++) { call_op.contract_id[i] = id.digest[i]; }
+
+   LOG(info) << "Calling contract";
+   types::protocol::operation o = call_op;
+
+   types::protocol::transaction_type transaction;
+   transaction.operations.push_back( pack::to_variable_blob( o ) );
+   active_data.transactions.push_back( pack::to_variable_blob( transaction ) );
 }
 
 } // koinos::plugins::block_producer
