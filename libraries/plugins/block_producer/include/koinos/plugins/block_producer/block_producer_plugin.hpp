@@ -33,6 +33,7 @@ class block_producer_plugin : public appbase::plugin< block_producer_plugin >
       void start_block_production();
       void stop_block_production();
 
+      void override_prints( types::protocol::active_block_data& active_data );
       void demo_create_contract( types::protocol::active_block_data& active_data );
       void demo_call_contract( types::protocol::active_block_data& active_data );
 
