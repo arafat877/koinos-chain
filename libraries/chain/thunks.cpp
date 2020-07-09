@@ -69,6 +69,9 @@ THUNK_DEFINE( bool, verify_block_header, ((const crypto::recoverable_signature&)
 
 THUNK_DEFINE( bool, check_merkle_root, ((const multihash_type&) root, (const std::vector< types::variable_blob >&) values) )
 {
+   multihash_type h;
+   merkle_hash_like( h, root, values );
+   return (h == root);
 }
 
 THUNK_DEFINE( void, apply_block,
@@ -81,9 +84,14 @@ THUNK_DEFINE( void, apply_block,
    // Deserialize the block header.
    block_header header;
    from_variable_blob( header_bytes, header );
+
+   std::vector< multihash_type > header_hashes;
+   from_multihash_vector( header_hashes, block.header_hashes );
+
    // If passive bytes exist, check the Merkle root.
-   KOINOS_TODO( "Make sure the caller only allows empty passive_bytes" );
-   check_merkle_root( 
+   KOINOS_TODO( "Make sure the caller only allows empty passive_bytes for trusted blocks" );
+   KOINOS_ASSERT( check_merkle_root( header_hashes[ header_hash_index::transaction_merkle_root_hash_index
+   KOINOS_ASSERT( check_merkle_root( root, values ), "Merkle root mismatch" );
 
    for ( auto& t : b.transactions )
    {
