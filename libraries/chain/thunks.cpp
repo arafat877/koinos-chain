@@ -4,6 +4,8 @@
 #include <koinos/chain/thunks.hpp>
 #include <koinos/chain/system_calls.hpp>
 
+#include <koinos/crypto/multihash.hpp>
+
 namespace koinos::chain {
 
 using namespace koinos::types;
@@ -65,8 +67,24 @@ THUNK_DEFINE( bool, verify_block_header, ((const crypto::recoverable_signature&)
    return crypto::public_key::from_base58( "5evxVPukp6bUdGNX8XUMD9e2J59j9PjqAVw2xYNw5xrdQPRRT8" ) == crypto::public_key::recover( sig, digest );
 }
 
-THUNK_DEFINE( void, apply_block, ((const protocol::active_block_data&) b) )
+THUNK_DEFINE( bool, check_merkle_root, ((const multihash_type&) root, (const std::vector< types::variable_blob >&) values) )
 {
+}
+
+THUNK_DEFINE( void, apply_block,
+   (
+    (const types::variable_blob&) header_bytes,
+    (const std::vector< types::variable_blob >&) transactions_bytes,
+    (const std::vector< types::variable_blob >&) passives_bytes
+   ))
+{
+   // Deserialize the block header.
+   block_header header;
+   from_variable_blob( header_bytes, header );
+   // If passive bytes exist, check the Merkle root.
+   KOINOS_TODO( "Make sure the caller only allows empty passive_bytes" );
+   check_merkle_root( 
+
    for ( auto& t : b.transactions )
    {
       apply_transaction( context, pack::from_variable_blob< protocol::transaction_type >( t ) );
