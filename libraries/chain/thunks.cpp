@@ -101,9 +101,11 @@ THUNK_DEFINE( void, apply_block,
    pack::from_variable_blob( block_parts[0].active_data, active );
 
    std::vector< multihash_type > header_hashes;
-   crypto::from_multihash_vector( header_hashes, block.header_hashes );
+   crypto::from_multihash_vector( header_hashes, active.header_hashes );
 
    KOINOS_TODO( "Check previous block hash" );
+   KOINOS_TODO( "Check height" );
+   KOINOS_TODO( "Check timestamp" );
    // Check transaction Merkle root
    KOINOS_TODO( "Specify allowed set of hashing algorithms" );
 
