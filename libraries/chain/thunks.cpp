@@ -65,15 +65,15 @@ THUNK_DEFINE( void, exit_contract, ((uint8_t) exit_code) )
 
 THUNK_DEFINE( bool, verify_block_sig, ((const variable_blob&) sig_data, (const crypto::multihash_type&) digest) )
 {
-   sig_block_data sig;
-   from_variable_blob( sig_data, sig );
+   types::protocol::sig_block_data sig;
+   pack::from_variable_blob( sig_data, sig );
    return crypto::public_key::from_base58( "5evxVPukp6bUdGNX8XUMD9e2J59j9PjqAVw2xYNw5xrdQPRRT8" ) == crypto::public_key::recover( sig.block_signature, digest );
 }
 
 THUNK_DEFINE( bool, verify_merkle_root, ((const multihash_type&) root, (const std::vector< multihash_type >&) hashes) )
 {
    std::vector< multihash_type > tmp = hashes;
-   merkle_hash_leaves( tmp );
+   crypto::merkle_hash_leaves( tmp );
    return (tmp[0] == root);
 }
 
@@ -97,26 +97,26 @@ THUNK_DEFINE( void, apply_block,
 
    KOINOS_ASSERT( block_parts.size() > 0, empty_block_header, "Block header does not exist" );
 
-   active_block_data active;
-   from_variable_blob( block_parts[0].active_data, active );
+   types::protocol::active_block_data active;
+   pack::from_variable_blob( block_parts[0].active_data, active );
 
    std::vector< multihash_type > header_hashes;
-   from_multihash_vector( header_hashes, block.header_hashes );
+   crypto::from_multihash_vector( header_hashes, block.header_hashes );
 
    KOINOS_TODO( "Check previous block hash" );
    // Check transaction Merkle root
    KOINOS_TODO( "Specify allowed set of hashing algorithms" );
 
-   const multihash_type& tx_root = header_hashes[ header_hash_index::transaction_merkle_root_hash_index ];
+   const multihash_type& tx_root = header_hashes[ types::protocol::header_hash_index::transaction_merkle_root_hash_index ];
    size_t tx_count = block_parts.size()-1;
 
    std::vector< multihash_type > hashes( tx_count );
 
    for( size_t i=0; i<tx_count; i++ )
    {
-      hash_str_like( hashes[i], tx_root, block_parts[i+1].active_data );
+      crypto::hash_str_like( hashes[i], tx_root, block_parts[i+1].active_data );
    }
-   merkle_hash_leaves( hashes );
+   crypto::merkle_hash_leaves( hashes );
    KOINOS_ASSERT( verify_merkle_root( tx_root, hashes ), transaction_root_mismatch, "Transaction Merkle root does not match" );
 
    // Check passive Merkle root
@@ -133,7 +133,7 @@ THUNK_DEFINE( void, apply_block,
       // This matches the pattern of the input, except the hash of block_sig is zero because it has not yet been determined
       // during the block building process.
 
-      const multihash_type& passive_root = header_hashes[ header_hash_index::passive_data_merkle_root_hash_index ];
+      const multihash_type& passive_root = header_hashes[ types::protocol::header_hash_index::passive_data_merkle_root_hash_index ];
       size_t passive_count = 2 * block_parts.size();
       hashes.resize( passive_count );
 
