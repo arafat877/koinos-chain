@@ -78,7 +78,7 @@ THUNK_DEFINE( bool, verify_merkle_root, ((const multihash_type&) root, (const st
 
 THUNK_DEFINE( void, apply_block,
    (
-    (const std::vector< types::chain::block_part >&) block_parts,
+    (const std::vector< types::system::block_part >&) block_parts,
     (types::boolean) enable_check_passive_data,
     (types::boolean) enable_check_block_signature,
     (types::boolean) enable_check_transaction_signatures

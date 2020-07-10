@@ -63,7 +63,7 @@ THUNK_DECLARE( bool, verify_block_sig, const variable_blob& sig_data, const cryp
 THUNK_DECLARE( bool, verify_merkle_root, const crypto::multihash_type& root, const std::vector< crypto::multihash_type >& hashes );
 
 THUNK_DECLARE( void, apply_block,
-   const std::vector< types::chain::block_part >& block_parts,
+   const std::vector< types::system::block_part >& block_parts,
    types::boolean enable_check_passive_data,
    types::boolean enable_check_block_signature,
    types::boolean enable_check_transaction_signatures );
