@@ -3,13 +3,10 @@
 #include <koinos/chain/privilege.hpp>
 #include <koinos/statedb/statedb.hpp>
 #include <koinos/pack/rt/basetypes.hpp>
+#include <koinos/crypto/elliptic.hpp>
 
 #include <optional>
 #include <string>
-
-namespace koinos::crypto {
-class public_key;
-}
 
 namespace koinos::chain {
 
@@ -48,7 +45,7 @@ class apply_context
        * For now, authority lives on the context.
        * This should be moved, made generic, or otherwise re-architected.
        */
-      void set_key_authority( const koinos::crypto::public_key& key );
+      void set_key_authority( const crypto::public_key& key );
       void clear_authority();
 
    /// Fields:
@@ -60,7 +57,7 @@ class apply_context
       state_node_ptr                current_state_node;
       types::variable_blob          contract_call_args;
       types::variable_blob          contract_return;
-      std::optional< public_key >   key_auth;
+      std::optional< crypto::public_key > key_auth;
 };
 
 } // koinos::chain
