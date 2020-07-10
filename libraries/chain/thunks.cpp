@@ -104,6 +104,8 @@ THUNK_DEFINE( void, apply_block,
 
    KOINOS_TODO( "Check previous block hash" );
    // Check transaction Merkle root
+   KOINOS_TODO( "Specify allowed set of hashing algorithms" );
+
    const multihash_type& tx_root = header_hashes[ header_hash_index::transaction_merkle_root_hash_index ];
    size_t tx_count = block_parts.size()-1;
 
@@ -153,19 +155,6 @@ THUNK_DEFINE( void, apply_block,
       KOINOS_ASSERT( verify_block_sig( block_parts[0].sig_data, active_block_hash ), "Block signature does not match" );
    }
 
-   KOINOS_TODO( "Specify allowed set of hashing algorithms" );
-
-   for( const variable_blob& tx_blob : b.transactions )
-   {
-      if( enable_check_transaction_signatures )
-      {
-         multihash_type tx_hash;
-         hash_blob_like( tx_hash, tx_root, tx_blob );
-         crypto::public_key::recover( sig.transaction_signature, tx_hash );
-      }
-      // Data flow 
-   }
-
    //
    // +-----------+      +--------------+      +-------------------------+      +---------------------+
    // | Block sig | ---> | Block active | ---> | Transaction merkle root | ---> | Transaction actives |
@@ -185,19 +174,35 @@ THUNK_DEFINE( void, apply_block,
    //                +----------------------+      +----------------------+
    //
 
-   // Check block signature
-
-   for ( auto& t : b.transactions )
+   for( const variable_blob& tx_blob : b.transactions )
    {
-      apply_transaction( context, pack::from_variable_blob< protocol::transaction_type >( t ) );
+      if( enable_check_transaction_signatures )
+      {
+         context.clear_authority();
+         check_transaction_signature( tx_blob );
+         multihash_type tx_hash;
+         hash_blob_like( tx_hash, tx_root, tx_blob );
+
+         context.set_key_authority( crypto::public_key::recover( sig.transaction_signature, tx_hash ) );
+      }
+      else
+      {
+         // In this case, we need to tell the authority system to allow everything (wildcard authority)
+         KOINOS_THROW( unimplemented, "enable_check_transaction_signatures=false is not implemented" );
+      }
+
+      apply_transaction( context, tx_blob );
    }
 }
 
-THUNK_DEFINE( void, apply_transaction, ((const protocol::transaction_type&) t) )
+THUNK_DEFINE( void, apply_transaction, ((const variable_blob&) tx_blob) )
 {
    using namespace koinos::types::protocol;
 
-   for ( auto& o : t.operations )
+   protocol::transaction_type t;
+   pack::from_variable_blob( tx_blob, t );
+
+   for( const variable_blob& o : t.operations )
    {
       std::visit( koinos::overloaded {
          [&]( const nop_operation& op ) { /* intentional fallthrough */ },

@@ -4,10 +4,16 @@
 #include <koinos/statedb/statedb.hpp>
 #include <koinos/pack/rt/basetypes.hpp>
 
+#include <optional>
 #include <string>
+
+namespace koinos::crypto {
+class public_key;
+}
 
 namespace koinos::chain {
 
+using boost::container::flat_set;
 using koinos::statedb::state_node_ptr;
 
 class apply_context
@@ -38,6 +44,13 @@ class apply_context
       types::variable_blob get_contract_return();
       void set_contract_return( const types::variable_blob& ret );
 
+      /**
+       * For now, authority lives on the context.
+       * This should be moved, made generic, or otherwise re-architected.
+       */
+      void set_key_authority( const koinos::crypto::public_key& key );
+      void clear_authority();
+
    /// Fields:
    public:
       privilege                     privilege_level = privilege::user_mode;
@@ -47,6 +60,7 @@ class apply_context
       state_node_ptr                current_state_node;
       types::variable_blob          contract_call_args;
       types::variable_blob          contract_return;
+      std::optional< public_key >   key_auth;
 };
 
 } // koinos::chain
