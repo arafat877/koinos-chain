@@ -94,7 +94,7 @@ THUNK_DEFINE( void, apply_block,
     * block_parts[1..n].sig_data     : Transaction signatures
     */
 
-   KOINOS_ASSERT( block_parts.size() > 0, "Block header does not exist" );
+   KOINOS_ASSERT( block_parts.size() > 0, empty_block_header, "Block header does not exist" );
 
    active_block_data active;
    from_variable_blob( block_parts[0].active_data, active );
@@ -116,7 +116,7 @@ THUNK_DEFINE( void, apply_block,
       hash_str_like( hashes[i], tx_root, block_parts[i+1].active_data );
    }
    merkle_hash_leaves( hashes );
-   KOINOS_ASSERT( verify_merkle_root( tx_root, hashes ), "Transaction Merkle root does not match" );
+   KOINOS_ASSERT( verify_merkle_root( tx_root, hashes ), transaction_root_mismatch, "Transaction Merkle root does not match" );
 
    // Check passive Merkle root
    if( enable_check_passive_data )
@@ -145,14 +145,14 @@ THUNK_DEFINE( void, apply_block,
          hash_blob_like( hashes[2*(i+1)  ], passive_root, block_parts[i+1].passive_data );
          hash_blob_like( hashes[2*(i+1)+1], passive_root, block_parts[i+1].sig_data     );
       }
-      KOINOS_ASSERT( verify_merkle_root( passive_root, hashes ), "Passive Merkle root does not match" );
+      KOINOS_ASSERT( verify_merkle_root( passive_root, hashes ), passive_root_mismatch, "Passive Merkle root does not match" );
    }
 
    if( enable_check_block_signature )
    {
       multihash_type active_block_hash;
       hash_blob_like( active_block_hash, tx_root, block_parts[0].active_data );
-      KOINOS_ASSERT( verify_block_sig( block_parts[0].sig_data, active_block_hash ), "Block signature does not match" );
+      KOINOS_ASSERT( verify_block_sig( block_parts[0].sig_data, active_block_hash ), invalid_block_signature, "Block signature does not match" );
    }
 
    //
