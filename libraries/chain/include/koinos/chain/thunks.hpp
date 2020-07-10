@@ -60,7 +60,7 @@ THUNK_DECLARE( void, prints, const std::string& str );
 THUNK_DECLARE( void, exit_contract, uint8_t exit_code );
 
 THUNK_DECLARE( bool, verify_block_sig, const variable_blob& sig_data, const crypto::multihash_type& digest );
-THUNK_DECLARE( bool, verify_merkle_root, const multihash_type& root, const std::vector< multihash_type >& hashes );
+THUNK_DECLARE( bool, verify_merkle_root, const crypto::multihash_type& root, const std::vector< crypto::multihash_type >& hashes );
 
 THUNK_DECLARE( void, apply_block,
    const std::vector< types::chain::block_part >& block_parts,
