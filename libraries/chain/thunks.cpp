@@ -73,7 +73,7 @@ THUNK_DEFINE( bool, verify_block_sig, ((const variable_blob&) sig_data, (const c
 THUNK_DEFINE( bool, verify_merkle_root, ((const multihash_type&) root, (const std::vector< multihash_type >&) hashes) )
 {
    std::vector< multihash_type > tmp = hashes;
-   crypto::merkle_hash_leaves( tmp );
+   crypto::merkle_hash_leaves_like( tmp, root );
    return (tmp[0] == root);
 }
 
@@ -116,7 +116,6 @@ THUNK_DEFINE( void, apply_block,
    {
       crypto::hash_str_like( hashes[i], tx_root, block_parts[i+1].active_data );
    }
-   crypto::merkle_hash_leaves( hashes );
    KOINOS_ASSERT( verify_merkle_root( tx_root, hashes ), transaction_root_mismatch, "Transaction Merkle root does not match" );
 
    // Check passive Merkle root
