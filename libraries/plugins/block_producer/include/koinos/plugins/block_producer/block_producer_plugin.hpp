@@ -4,6 +4,7 @@
 #include <koinos/plugins/chain/chain_plugin.hpp>
 #include <koinos/pack/classes.hpp>
 #include <koinos/crypto/elliptic.hpp>
+#include <koinos/plugins/block_producer/pow_algorithm.hpp>
 
 #define KOINOS_BLOCK_PRODUCER_PLUGIN_NAME "block_producer"
 #define KOINOS_BLOCK_TIME_MS              10000
@@ -40,6 +41,9 @@ class block_producer_plugin : public appbase::plugin< block_producer_plugin >
 
       std::shared_ptr< std::thread > block_production_thread;
       std::optional< bfs::path >     wasm;
+
+   private:
+      std::shared_ptr< pow_algorithm > pow;
 };
 
 } // koinos::plugins::block_producer

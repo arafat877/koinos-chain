@@ -1,6 +1,7 @@
 file(GLOB HEADERS "include/koinos/plugins/block_producer/*.hpp")
 add_library( koinos_block_producer_plugin
              block_producer_plugin.cpp
+	     pow_algorithm.cpp
 	     ${HEADERS} )
 
 target_link_libraries( koinos_block_producer_plugin koinos_chain appbase koinos_types koinos_chain_plugin koinos_crypto koinos_log koinos_util )
