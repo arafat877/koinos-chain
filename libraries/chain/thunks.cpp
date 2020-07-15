@@ -176,7 +176,7 @@ THUNK_DEFINE( void, apply_block,
    //                +----------------------+      +----------------------+
    //
 
-   for( const variable_blob& tx_blob : b.transactions )
+   for( const variable_blob& tx_blob : active.transactions )
    {
       if( enable_check_transaction_signatures )
       {
@@ -184,9 +184,10 @@ THUNK_DEFINE( void, apply_block,
          KOINOS_TODO( "Implement check_transaction_signature" );
          // check_transaction_signature( tx_blob );
          multihash_type tx_hash;
-         hash_blob_like( tx_hash, tx_root, tx_blob );
+         crypto::hash_blob_like( tx_hash, tx_root, tx_blob );
 
-         context.set_key_authority( crypto::public_key::recover( sig.transaction_signature, tx_hash ) );
+         KOINOS_TODO( "Check transaction authority" )
+         //context.set_key_authority( crypto::public_key::recover( sig.transaction_signature, tx_hash ) );
       }
       else
       {
