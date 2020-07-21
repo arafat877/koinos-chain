@@ -88,16 +88,16 @@ THUNK_DEFINE( void, apply_block,
    KOINOS_TODO( "Check previous block hash" );
    KOINOS_TODO( "Check height" );
    KOINOS_TODO( "Check timestamp" );
-   // Check transaction Merkle root
    KOINOS_TODO( "Specify allowed set of hashing algorithms" );
 
-   // This will implicitly deserialize block.active_data for easy access
+   block.active_data.unbox();
    std::vector< multihash_type > header_hashes;
    crypto::from_multihash_vector( header_hashes, block.active_data->header_hashes );
 
    const multihash_type& tx_root = header_hashes[ (size_t)types::protocol::header_hash_index::transaction_merkle_root_hash_index ];
    size_t tx_count = block.transactions.size();
 
+   // Check transaction Merkle root
    std::vector< multihash_type > hashes( tx_count );
 
    for( size_t i=0; i<tx_count; i++ )
@@ -119,29 +119,25 @@ THUNK_DEFINE( void, apply_block,
       // Passive Merkle root verifies:
       //
       // Block passive
-      // Block signature slot (zero hash)
-      //
-      // Transaction passive
-      // Transaction signature
+      // Transaction passives
+      // Transaction signatures
       //
       // This matches the pattern of the input, except the hash of block_sig is zero because it has not yet been determined
       // during the block building process.
-      /*
-      const multihash_type& passive_root = header_hashes[ types::protocol::header_hash_index::passive_data_merkle_root_hash_index ];
-      size_t passive_count = 2 * block_parts.size();
+
+      const multihash_type& passive_root = header_hashes[(uint32_t)types::protocol::header_hash_index::passive_data_merkle_root_hash_index];
+      size_t passive_count = 2 * block.transactions.size() + 1;
       hashes.resize( passive_count );
 
-      hash_blob_like( hashes[0], passive_root, block_parts[0].passive_data );
-      zero_hash_like( hashes[1], passive_root );
+      crypto::hash_blob_like( hashes[0], passive_root, block.passive_data );
 
       // We hash in this order so that the two hashes for each transaction have a common Merkle parent
       for( size_t i=0; i<tx_count; i++ )
       {
-         hash_blob_like( hashes[2*(i+1)  ], passive_root, block_parts[i+1].passive_data );
-         hash_blob_like( hashes[2*(i+1)+1], passive_root, block_parts[i+1].sig_data     );
+         crypto::hash_blob_like( hashes[(2*i)+1], passive_root, block.transactions[i]->passive_data );
+         crypto::hash_blob_like( hashes[(2*i)+2], passive_root, block.transactions[i]->signature_data );
       }
-      KOINOS_ASSERT( verify_merkle_root( passive_root, hashes ), passive_root_mismatch, "Passive Merkle root does not match" );
-      */
+      KOINOS_ASSERT( verify_merkle_root( context, passive_root, hashes ), passive_root_mismatch, "Passive Merkle root does not match" );
    }
 
    //

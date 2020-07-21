@@ -250,6 +250,7 @@ template< typename T > void decode_canonical( const variable_blob& bin, T& targe
 
 void decode_block( block_submission_impl& block )
 {
+   /*
    KOINOS_ASSERT( block.submission.header_bytes.size() >= 1, block_header_empty, "Block has empty header" );
 
    decode_canonical( block.submission.header_bytes, block.header );
@@ -262,6 +263,7 @@ void decode_block( block_submission_impl& block )
    std::size_t n_passives = block.passives.size();
    for( std::size_t i = 0; i < n_passives; i++ )
       decode_canonical( block.passives[i], block.passives[i] );
+   */
 }
 
 void controller_impl::process_submission( rpc::block_submission_result& ret, block_submission_impl& block )
