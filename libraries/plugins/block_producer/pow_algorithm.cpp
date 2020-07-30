@@ -14,7 +14,7 @@ timed_block_generation::timed_block_generation(const uint32_t time_ms)
    this->time_ms = time_ms;
 }
 
-std::optional< uint64_t > timed_block_generation::generate_pow(const koinos::pack::multihash_type multihash,
+std::optional< uint64_t > timed_block_generation::generate_pow(const koinos::pack::multihash mh,
                                                                uint32_t difficulty, uint64_t start, uint64_t end)
 {
    std::this_thread::sleep_for( std::chrono::milliseconds( time_ms ) );
@@ -22,7 +22,7 @@ std::optional< uint64_t > timed_block_generation::generate_pow(const koinos::pac
    return 0;
 }
 
-std::optional< uint64_t > sha256_pow::generate_pow(const koinos::pack::multihash_type digest,
+std::optional< uint64_t > sha256_pow::generate_pow(const koinos::pack::multihash digest,
                                                                uint32_t difficulty, uint64_t start, uint64_t end)
 {
    bool done = false;
