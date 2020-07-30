@@ -71,10 +71,21 @@ std::shared_ptr< protocol::block > block_producer_plugin::produce_block()
    block->active_data = std::move( active_data );
 
    util::set_block_merkle_roots( *block, CRYPTO_SHA2_256_ID );
-   util::sign_block( *block, block_signing_private_key );
 
    // Store hash of header as ID
    topology.id = crypto::hash( CRYPTO_SHA2_256_ID, block->active_data );
+
+   auto nonce = pow->generate_pow( topology.id, 5, 1, ~0 );
+   if ( !nonce.has_value() ) { return std::shared_ptr< protocol::block >(); }
+
+   if (!*nonce)
+   {
+      util::sign_block( *block, block_signing_private_key );
+   }
+   else
+   {
+      pack::to_variable_blob( block->signature_data, *nonce );
+   }
 
    // Submit the block
    r = controller.submit( rpc::block_submission{
@@ -130,6 +141,7 @@ void block_producer_plugin::plugin_initialize( const appbase::variables_map& opt
 
 void block_producer_plugin::plugin_startup()
 {
+   this->pow = std::make_shared< timed_block_generation >( KOINOS_BLOCK_TIME_MS );
    start_block_production();
 }
 
@@ -150,7 +162,7 @@ void block_producer_plugin::start_block_production()
          auto block = produce_block();
 
          // Sleep for the block production time
-         std::this_thread::sleep_for( std::chrono::milliseconds( KOINOS_BLOCK_TIME_MS ) );
+         // std::this_thread::sleep_for( std::chrono::milliseconds( KOINOS_BLOCK_TIME_MS ) );
       }
    } );
 }
@@ -164,5 +176,31 @@ void block_producer_plugin::stop_block_production()
 
    block_production_thread.reset();
 }
+
+void block_producer_plugin::demo_create_contract( types::protocol::block& block )
+{
+   LOG(info) << "Creating contract";
+
+   // Create the operation, fill the contract code
+   // We will leave extensions and id at default for now
+   types::protocol::create_system_contract_operation create_op;
+   LOG(info) << wasm->native();
+   std::fstream wasm_stream( wasm->native() );
+   std::istreambuf_iterator< char > wasm_itr( wasm_stream );
+   std::istreambuf_iterator< char > end;
+   create_op.bytecode.insert( create_op.bytecode.end(), wasm_itr, end );
+   LOG(info) << create_op.bytecode.size();
+
+   auto id = crypto::hash( CRYPTO_RIPEMD160_ID, 1 );
+   for (int i = 0; i < 20; i++) { create_op.contract_id[i] = id.digest[i]; }
+
+   types::protocol::operation o = create_op;
+
+   types::protocol::transaction transaction;
+   transaction.operations.push_back( o );
+
+   block.transactions.push_back( transaction );
+}
+
 
 } // koinos::plugins::block_producer

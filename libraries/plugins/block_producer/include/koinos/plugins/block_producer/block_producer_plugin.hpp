@@ -44,6 +44,7 @@ class block_producer_plugin : public appbase::plugin< block_producer_plugin >
 
    private:
       std::shared_ptr< pow_algorithm > pow;
+      void demo_create_contract( types::protocol::block& block );
 };
 
 } // koinos::plugins::block_producer
