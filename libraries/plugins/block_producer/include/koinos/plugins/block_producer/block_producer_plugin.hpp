@@ -7,7 +7,7 @@
 #include <koinos/plugins/block_producer/pow_algorithm.hpp>
 
 #define KOINOS_BLOCK_PRODUCER_PLUGIN_NAME "block_producer"
-#define KOINOS_BLOCK_TIME_MS              10000
+#define KOINOS_BLOCK_TIME_MS              2000
 
 namespace koinos::plugins::block_producer {
 
@@ -44,7 +44,7 @@ class block_producer_plugin : public appbase::plugin< block_producer_plugin >
 
    private:
       std::shared_ptr< pow_algorithm > pow;
-      void demo_create_contract( types::protocol::block& block );
+      void demo_do_pow( types::protocol::block& block );
 };
 
 } // koinos::plugins::block_producer

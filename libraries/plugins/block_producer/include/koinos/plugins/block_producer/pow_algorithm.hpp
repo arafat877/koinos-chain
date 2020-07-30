@@ -5,16 +5,16 @@
 class pow_algorithm
 {
 public:
-   pow_algorithm() { };
-   virtual ~pow_algorithm() { };
-   virtual std::optional< uint64_t > generate_pow(const koinos::pack::multihash& mh, uint32_t difficulty, uint64_t start, uint64_t end) = 0;
+   pow_algorithm() {}
+   virtual ~pow_algorithm() {}
+   virtual std::optional< uint64_t > generate_pow( const koinos::pack::multihash& mh, uint32_t difficulty, uint64_t start, uint64_t end ) = 0;
 };
 
 class timed_block_generation : public pow_algorithm
 {
 public:
-   timed_block_generation(uint32_t time_ms);
-   virtual std::optional< uint64_t > generate_pow(const koinos::pack::multihash& mh, uint32_t difficulty, uint64_t start, uint64_t end) override;
+   timed_block_generation( uint32_t time_ms );
+   virtual std::optional< uint64_t > generate_pow( const koinos::pack::multihash& mh, uint32_t difficulty, uint64_t start, uint64_t end ) override;
 
 protected:
    uint32_t time_ms;
@@ -23,6 +23,6 @@ protected:
 class sha256_pow : public pow_algorithm
 {
 public:
-   sha256_pow();
-   virtual std::optional< uint64_t > generate_pow(const koinos::pack::multihash& mh, uint32_t difficulty, uint64_t start, uint64_t end) override;
+   sha256_pow() {}
+   virtual std::optional< uint64_t > generate_pow( const koinos::pack::multihash& mh, uint32_t difficulty, uint64_t start, uint64_t end ) override;
 };

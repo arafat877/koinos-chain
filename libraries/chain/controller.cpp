@@ -381,6 +381,7 @@ void controller_impl::work_thread_main()
       }
       catch( const koinos::exception& e )
       {
+         LOG(error) << e.get_message();
          maybe_err = e.what();
       }
       catch( const std::exception& e )

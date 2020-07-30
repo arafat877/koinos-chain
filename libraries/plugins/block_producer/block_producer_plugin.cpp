@@ -4,6 +4,7 @@
 #include <boost/thread.hpp>
 
 #include <koinos/pack/classes.hpp>
+#include <koinos/pack/system_call_ids.hpp>
 #include <koinos/plugins/block_producer/block_producer_plugin.hpp>
 #include <koinos/plugins/block_producer/util/block_util.hpp>
 #include <koinos/crypto/multihash.hpp>
@@ -60,6 +61,15 @@ std::shared_ptr< protocol::block > block_producer_plugin::produce_block()
    {
       LOG(error) << e.what();
       return block;
+   }
+
+   if( topology.height == 8 )
+   {
+      demo_do_pow( *block );
+   }
+   else if( topology.height == 9 )
+   {
+      pow = std::make_shared< sha256_pow >();
    }
 
    // TODO: Add transactions from the mempool
@@ -177,9 +187,9 @@ void block_producer_plugin::stop_block_production()
    block_production_thread.reset();
 }
 
-void block_producer_plugin::demo_create_contract( types::protocol::block& block )
+void block_producer_plugin::demo_do_pow( types::protocol::block& block )
 {
-   LOG(info) << "Creating contract";
+   LOG(info) << "Uploading and ovewriting consensus to PoW";
 
    // Create the operation, fill the contract code
    // We will leave extensions and id at default for now
@@ -197,9 +207,18 @@ void block_producer_plugin::demo_create_contract( types::protocol::block& block 
    types::protocol::operation o = create_op;
 
    types::protocol::transaction transaction;
-   transaction.operations.push_back( o );
+   transaction.operations.emplace_back( std::move( create_op ) );
 
-   block.transactions.push_back( transaction );
+   types::protocol::set_system_call_operation set_op;
+   set_op.call_id = (uint32_t)types::system::system_call_id::verify_block_sig;
+   types::system::contract_call_bundle call_bundle;
+   for (int i = 0; i < 20; i++) { call_bundle.contract_id[i] = id.digest[i]; }
+   call_bundle.entry_point = 0;
+   set_op.target = call_bundle;
+
+   transaction.operations.emplace_back( std::move( set_op ) );
+
+   block.transactions.emplace_back( std::move( transaction ) );
 }
 
 

@@ -172,10 +172,13 @@ THUNK_DEFINE( void, apply_block,
          tx.unbox();
          multihash tx_hash = crypto::hash_like( tx_root, tx->active_data );
 
-         crypto::recoverable_signature sig;
-         pack::from_variable_blob( tx->signature_data, sig );
+         if( tx->signature_data.size() )
+         {
+            crypto::recoverable_signature sig;
+            pack::from_variable_blob( tx->signature_data, sig );
 
-         context.set_key_authority( crypto::public_key::recover( sig, tx_hash ) );
+            context.set_key_authority( crypto::public_key::recover( sig, tx_hash ) );
+         }
       }
       else
       {

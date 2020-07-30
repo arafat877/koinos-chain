@@ -33,21 +33,28 @@ std::optional< uint64_t > sha256_pow::generate_pow(const koinos::pack::multihash
    uint32_t osize = h.size();
 
    // Loop through each nonce in the given range
-   for (uint64_t nonce = start; nonce <= end; nonce++)
+   for ( uint64_t nonce = start; nonce <= end; nonce++ )
    {
       // Reset values for this nonce
       done = false;
       count = 0;
 
       // Set the vector to multihash+nonce
-      h.resize(osize);
-      vectorstream vstream(h);
-      koinos::pack::to_binary(vstream, nonce);
+      h.resize( osize );
+      koinos::pack::to_variable_blob( h, nonce, true );
 
       // Now hash it
-      auto hash = koinos::crypto::hash( CRYPTO_SHA2_256_ID, h );
+      auto hash = koinos::crypto::hash_blob( CRYPTO_SHA2_256_ID, h );
 
-      for (size_t mi = 0; mi < hash.digest.size(); mi++)
+      if( uint8_t(hash.digest[0]) == uint8_t(0x00) &&
+          uint8_t(hash.digest[1]) <= uint8_t(0x00) &&
+          uint8_t(hash.digest[2]) <= uint8_t(0x0F) ) // 20 bits of difficulty
+      {
+         return nonce;
+      }
+
+      /*
+      for ( size_t mi = 0; mi < hash.digest.size(); mi++ )
       {
          char c = hash.digest[mi];
          for (size_t ci = 0; ci < 8; ci++)
@@ -65,13 +72,14 @@ std::optional< uint64_t > sha256_pow::generate_pow(const koinos::pack::multihash
          // If done is set, we stop counting zeroes in this char
          if (done) { break; }
       }
+      */
 
       // If we have found a working nonce, then set ret and stop the loop
-      if (count >= difficulty)
-      {
-         ret = nonce;
-         break;
-      }
+      //if (count >= difficulty)
+      //{
+      //   ret = nonce;
+      //   break;
+      //}
    }
 
    return ret;
