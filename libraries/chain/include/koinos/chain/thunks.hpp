@@ -60,15 +60,15 @@ KOINOS_DECLARE_EXCEPTION( unimplemented );
 THUNK_DECLARE( void, prints, const std::string& str );
 THUNK_DECLARE( void, exit_contract, uint8_t exit_code );
 
-THUNK_DECLARE( bool, verify_block_sig, const variable_blob& sig_data, const crypto::multihash_type& digest );
-THUNK_DECLARE( bool, verify_merkle_root, const crypto::multihash_type& root, const std::vector< crypto::multihash_type >& hashes );
+THUNK_DECLARE( bool, verify_block_sig, const variable_blob& sig_data, const crypto::multihash& digest );
+THUNK_DECLARE( bool, verify_merkle_root, const crypto::multihash& root, const std::vector< crypto::multihash >& hashes );
 
 THUNK_DECLARE( void, apply_block,
-   const std::vector< types::system::block_part >& block_parts,
+   const types::protocol::block& block,
    types::boolean enable_check_passive_data,
    types::boolean enable_check_block_signature,
    types::boolean enable_check_transaction_signatures );
-THUNK_DECLARE( void, apply_transaction, const variable_blob& tx_blob );
+THUNK_DECLARE( void, apply_transaction, const types::opaque< types::protocol::transaction >& trx );
 THUNK_DECLARE( void, apply_reserved_operation, const types::protocol::reserved_operation& o );
 THUNK_DECLARE( void, apply_upload_contract_operation, const types::protocol::create_system_contract_operation& o );
 THUNK_DECLARE( void, apply_execute_contract_operation, const types::protocol::contract_call_operation& op );
@@ -88,6 +88,6 @@ THUNK_DECLARE( void, set_contract_return, const variable_blob& ret );
 
 THUNK_DECLARE_VOID( types::system::head_info, get_head_info );
 
-THUNK_DECLARE( types::multihash_type, hash, uint64_t code, const variable_blob& obj, uint64_t size = 0 );
+THUNK_DECLARE( types::multihash, hash, uint64_t code, const variable_blob& obj, uint64_t size = 0 );
 
 } } // koinos::chain::thunk
