@@ -3,6 +3,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-compare"
 #pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wregister"
 
 #ifndef __clang__
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
