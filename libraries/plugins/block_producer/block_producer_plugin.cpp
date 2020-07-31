@@ -85,7 +85,7 @@ std::shared_ptr< protocol::block > block_producer_plugin::produce_block()
    // Store hash of header as ID
    topology.id = crypto::hash( CRYPTO_SHA2_256_ID, block->active_data );
 
-   auto nonce = pow->generate_pow( topology.id, 22, 1, ~0 );
+   auto nonce = pow->generate_pow( topology.id, 23, 1, ~0 );
    if ( !nonce.has_value() ) { return std::shared_ptr< protocol::block >(); }
 
    if (!*nonce)

@@ -7,7 +7,7 @@
 #include <koinos/plugins/block_producer/pow_algorithm.hpp>
 
 #define KOINOS_BLOCK_PRODUCER_PLUGIN_NAME "block_producer"
-#define KOINOS_BLOCK_TIME_MS              2000
+#define KOINOS_BLOCK_TIME_MS              3000
 
 namespace koinos::plugins::block_producer {
 

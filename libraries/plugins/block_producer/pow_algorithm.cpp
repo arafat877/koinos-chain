@@ -1,13 +1,10 @@
 #include <thread>
 #include <chrono>
-#include <boost/interprocess/streams/vectorstream.hpp>
 
 #include <koinos/crypto/multihash.hpp>
 #include <koinos/pack/rt/binary.hpp>
 
 #include <koinos/plugins/block_producer/pow_algorithm.hpp>
-
-using vectorstream = boost::interprocess::basic_vectorstream< std::vector< char > >;
 
 timed_block_generation::timed_block_generation(uint32_t time_ms)
 {
@@ -31,6 +28,8 @@ std::optional< uint64_t > sha256_pow::generate_pow(const koinos::pack::multihash
 
    koinos::pack::variable_blob h(digest.digest);
    uint32_t osize = h.size();
+
+   auto start_time = std::chrono::steady_clock::now();
 
    // Loop through each nonce in the given range
    for ( uint64_t nonce = start; nonce <= end; nonce++ )
@@ -69,6 +68,8 @@ std::optional< uint64_t > sha256_pow::generate_pow(const koinos::pack::multihash
       if (count >= difficulty)
       {
          ret = nonce;
+         auto duration = std::chrono::steady_clock::now() - start_time;
+         LOG(info) << "Current hashrate: " << ( ( nonce * 1000000000 ) / duration.count() ) << " H/s";
          break;
       }
    }
