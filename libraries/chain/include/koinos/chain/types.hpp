@@ -33,7 +33,7 @@ namespace koinos::chain {
    using koinos::types::variable_blob;
 
    using wasm_allocator_type = eosio::vm::wasm_allocator;
-   using backend_type        = eosio::vm::backend< apply_context >;
+   using backend_type        = eosio::vm::backend< apply_context, eosio::vm::jit >;
    using registrar_type      = eosio::vm::registered_host_functions< apply_context >;
    using wasm_code_ptr       = eosio::vm::wasm_code_ptr;
 
