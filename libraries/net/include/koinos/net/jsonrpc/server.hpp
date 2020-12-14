@@ -4,6 +4,7 @@
 #include <boost/beast/http.hpp>
 #include <boost/asio/bind_executor.hpp>
 #include <boost/asio/dispatch.hpp>
+#include <boost/asio/generic/stream_protocol.hpp>
 #include <boost/asio/signal_set.hpp>
 #include <boost/asio/strand.hpp>
 #include <boost/make_unique.hpp>
@@ -28,13 +29,12 @@
 
 #include <nlohmann/json.hpp>
 
-
 namespace koinos::net::jsonrpc {
 
 namespace beast = boost::beast;
 namespace http = beast::http;
 namespace net = boost::asio;
-using tcp = boost::asio::ip::tcp;
+using stream_protocol = boost::asio::generic::stream_protocol;
 using json = nlohmann::json;
 
 // This function produces an HTTP response for the given
@@ -52,8 +52,8 @@ void handle_request( request_handler req_handler, http::request< Body, http::bas
       res.set( http::field::content_type, constants::content_type::application_json );
       res.keep_alive( req.keep_alive() );
       json j = jsonrpc::response {
-         .id = nullptr,
          .jsonrpc = "2.0",
+         .id = nullptr,
          .error = jsonrpc::error_type {
             .code = error_code::invalid_request,
             .message = std::string( why )
@@ -72,8 +72,8 @@ void handle_request( request_handler req_handler, http::request< Body, http::bas
       res.set( http::field::content_type, constants::content_type::application_json );
       res.keep_alive( req.keep_alive() );
       json j = jsonrpc::response {
-         .id = nullptr,
          .jsonrpc = "2.0",
+         .id = nullptr,
          .error = jsonrpc::error_type {
             .code = error_code::method_not_found,
             .message = std::string( target )
@@ -92,8 +92,8 @@ void handle_request( request_handler req_handler, http::request< Body, http::bas
       res.set( http::field::content_type, constants::content_type::application_json );
       res.keep_alive( req.keep_alive() );
       json j = jsonrpc::response {
-         .id = nullptr,
          .jsonrpc = "2.0",
+         .id = nullptr,
          .error = jsonrpc::error_type {
             .code = error_code::internal_error,
             .message = std::string( what )
@@ -115,36 +115,39 @@ void handle_request( request_handler req_handler, http::request< Body, http::bas
          return send( bad_request( "unsupported http method" ) );
    }
 
-   if( !req.target().empty() || req.target()[0] != '/' )
+   if ( !req.target().empty() && req.target()[0] != '/' )
       return send( bad_request( "unsupported target" ) );
 
 
    http::string_body::value_type body;
-   beast::error_code ec;
 
    try
    {
       jsonrpc::request r = json::parse( req.body() );
+      r.validate();
+
       auto h = req_handler.get_method_handler( r.method );
+
+      if ( !h.has_value() )
+         return send( not_found( r.method ) );
+
+      json resp = jsonrpc::response {
+         .jsonrpc = "2.0",
+         .id = r.id,
+         .result = h.value()( r.params )
+      };
+      body = resp.dump();
    }
    catch ( const std::exception& e )
    {
       return send( server_error( e.what() ) );
    }
 
-   // Handle the case where the file doesn't exist
-   if( ec == beast::errc::no_such_file_or_directory )
-      return send( not_found( req.target() ) );
-
-   // Handle an unknown error
-   if( ec )
-      return send( server_error( ec.message() ) );
-
    // Cache the size since we need it after the move
    auto const size = body.size();
 
    // Respond to HEAD request
-   if( req.method() == http::verb::head )
+   if ( req.method() == http::verb::head )
    {
       http::response< http::empty_body > res{ http::status::ok, req.version() };
       res.set( http::field::server, constants::version_string );
@@ -210,7 +213,7 @@ class http_session : public std::enable_shared_from_this< http_session >
          BOOST_ASSERT( !items_.empty() );
          auto const was_full = is_full();
          items_.erase( items_.begin() );
-         if( !items_.empty() )
+         if ( !items_.empty() )
             (*items_.front())();
          return was_full;
       }
@@ -239,12 +242,12 @@ class http_session : public std::enable_shared_from_this< http_session >
          items_.push_back( boost::make_unique< work_impl >( self_, std::move( msg ) ) );
 
          // If there was no previous work, start this one
-         if( items_.size() == 1 )
+         if ( items_.size() == 1 )
             (*items_.front())();
       }
    };
 
-   beast::tcp_stream stream_;
+   beast::basic_stream< stream_protocol > stream_;
    beast::flat_buffer buffer_;
    std::shared_ptr< request_handler const > req_handler_;
    queue queue_;
@@ -255,7 +258,7 @@ class http_session : public std::enable_shared_from_this< http_session >
 
 public:
    // Take ownership of the socket
-   http_session( tcp::socket&& socket, std::shared_ptr< request_handler const > const& req_handler ) :
+   http_session( stream_protocol::socket&& socket, std::shared_ptr< request_handler const > const& req_handler ) :
       stream_( std::move( socket ) ),
       req_handler_( req_handler ),
       queue_( *this ) {}
@@ -293,10 +296,10 @@ private:
       boost::ignore_unused( bytes_transferred );
 
       // This means they closed the connection
-      if( ec == http::error::end_of_stream )
+      if ( ec == http::error::end_of_stream )
          return do_close();
 
-      if( ec )
+      if ( ec )
       {
          LOG(error) << "read: " << ec.message();
          return;
@@ -306,7 +309,7 @@ private:
       handle_request( *req_handler_, parser_->release(), queue_ );
 
       // If we aren't at the queue limit, try to pipeline another request
-      if( !queue_.is_full() )
+      if ( !queue_.is_full() )
          do_read();
    }
 
@@ -314,13 +317,13 @@ private:
    {
       boost::ignore_unused( bytes_transferred );
 
-      if( ec )
+      if ( ec )
       {
          LOG(error) << "write: " << ec.message();
          return;
       }
 
-      if( close )
+      if ( close )
       {
          // This means we should close the connection, usually because
          // the response indicated the "Connection: close" semantic.
@@ -328,7 +331,7 @@ private:
       }
 
       // Inform the queue that a write completed
-      if( queue_.on_write() )
+      if ( queue_.on_write() )
       {
          // Read another request
          do_read();
@@ -339,7 +342,7 @@ private:
    {
       // Send a TCP shutdown
       beast::error_code ec;
-      stream_.socket().shutdown( tcp::socket::shutdown_send, ec );
+      stream_.socket().shutdown( stream_protocol::socket::shutdown_send, ec );
 
       // At this point the connection is closed gracefully
    }
@@ -351,11 +354,11 @@ private:
 class listener : public std::enable_shared_from_this< listener >
 {
    net::io_context& ioc_;
-   tcp::acceptor acceptor_;
+   net::basic_socket_acceptor< stream_protocol > acceptor_;
    std::shared_ptr< request_handler const > req_handler_;
 
 public:
-   listener( net::io_context& ioc, tcp::endpoint endpoint, std::shared_ptr< request_handler const > const& req_handler ) :
+   listener( net::io_context& ioc, stream_protocol::endpoint endpoint, std::shared_ptr< request_handler const > const& req_handler ) :
       ioc_( ioc ),
       acceptor_( net::make_strand( ioc ) ),
       req_handler_( req_handler )
@@ -364,7 +367,7 @@ public:
 
       // Open the acceptor
       acceptor_.open( endpoint.protocol(), ec );
-      if( ec )
+      if ( ec )
       {
          LOG(error) << "open: " << ec.message();
          return;
@@ -372,7 +375,7 @@ public:
 
       // Allow address reuse
       acceptor_.set_option( net::socket_base::reuse_address( true ), ec );
-      if( ec )
+      if ( ec )
       {
          LOG(error) << "set_option: " << ec.message();
          return;
@@ -380,7 +383,7 @@ public:
 
       // Bind to the server address
       acceptor_.bind( endpoint, ec );
-      if( ec )
+      if ( ec )
       {
          LOG(error) << "bind: " << ec.message();
          return;
@@ -388,7 +391,7 @@ public:
 
       // Start listening for connections
       acceptor_.listen( net::socket_base::max_listen_connections, ec );
-      if( ec )
+      if ( ec )
       {
          LOG(error) << "listen: " << ec.message();
          return;
@@ -412,9 +415,9 @@ private:
       acceptor_.async_accept( net::make_strand( ioc_ ), beast::bind_front_handler( &listener::on_accept, shared_from_this() ) );
    }
 
-   void on_accept(beast::error_code ec, tcp::socket socket)
+   void on_accept( beast::error_code ec, stream_protocol::socket socket )
    {
-      if( ec )
+      if ( ec )
       {
          LOG(error) << "accept: " << ec.message();
       }
