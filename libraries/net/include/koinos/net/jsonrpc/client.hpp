@@ -14,19 +14,24 @@ typedef std::variant<std::any, koinos::exception> call_result;
 
 class jsonrpc_client {
    private:
-      struct jsonrpc_response_parser
-      {
-         static uint64_t parse_response( const std::string&, std::any& ) { return 0; }
-      };
-
-      http_client< jsonrpc_response_parser > _client;
+      http_client _client;
       std::atomic< uint32_t >                _next_id;
 
    public:
+      jsonrpc_client();
+
+      void connect( const std::string& host, uint32_t port );
+      bool is_open() const;
+      void close();
+
       template< typename Result, typename Params >
       std::future< Result > call_async( const std::string& method, const Params& params )
       {
-         // TODO: Format jsonrpc request
+         nlohmann::json j;
+         j["id"] = _next_id++;
+         j["jsonrpc"] = "2.0";
+         j["method"] = "method";
+         koinos::pack::to_json( j["params"], params );
 
          return std::async(
             std::launch::async,
@@ -49,7 +54,7 @@ class jsonrpc_client {
 
                return result;
             },
-            _client.send_request( 0, "" )
+            _client.send_request( j["id"].get< uint32_t >(), j.dump() )
          );
       }
 

@@ -14,6 +14,8 @@
 #include <koinos/plugins/chain/chain_plugin.hpp>
 #include <koinos/plugins/block_producer/block_producer_plugin.hpp>
 
+#include <koinos/net/client.hpp>
+
 const std::string& version_string()
 {
    static std::string v_str = "0.1";
@@ -59,6 +61,10 @@ int main( int argc, char** argv )
       bool initialized = appbase::app().initialize<
          koinos::plugins::chain::chain_plugin >
          ( argc, argv );
+
+      koinos::net::client c;
+      c.call< uint32_t >( "test", 0 );
+      c.call_async< uint32_t >( "test", 0 );
 
       if( !initialized ) return EXIT_SUCCESS;
 
