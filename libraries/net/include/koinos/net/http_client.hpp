@@ -1,27 +1,28 @@
 #pragma once
 
 #include <any>
+#include <chrono>
+#include <deque>
 #include <future>
 #include <mutex>
-#include <queue>
 #include <variant>
 
 #include <boost/asio/connect.hpp>
-#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/generic/stream_protocol.hpp>
 #include <boost/beast/core.hpp>
-#include <boost/beast/http.hpp>
 #include <boost/beast/version.hpp>
 
 #include <boost/thread/sync_bounded_queue.hpp>
 
 #include <koinos/exception.hpp>
 
+#define DEFAULT_REQUEST_TIMEOUT_MS 10000
+
 namespace koinos::net {
 
 namespace beast = boost::beast;
-namespace http = beast::http;
 namespace net = boost::asio;
-using tcp = boost::asio::ip::tcp;
+using stream_protocol = net::generic::stream_protocol;
 
 /**
  * Call result allows sending of exceptions from parsing of the response
@@ -55,19 +56,11 @@ class http_client
          std::vector< uint8_t > payload;
       };
 
-      struct request_time_info
-      {
-         uint32_t send_time;
-         uint32_t id;
-      };
-
       std::map<
          uint32_t,
          std::promise< call_result > >                            _request_map;
-      //std::priority_queue<
-      //   request_time_info,
-      //   std::greater< typename request_time_info::send_time > >  _timeout_queue;
-      std::thread                                                 _read_thread;
+      std::unique_ptr< std::thread >                              _read_thread;
+      std::unique_ptr< std::thread >                              _ioc_thread;
       std::mutex                                                  _mutex;
 
       std::string _content_type;
@@ -76,26 +69,29 @@ class http_client
       parse_response_callback_t                                   _parse_response;
 
       net::io_context    _ioc;
-      beast::tcp_stream  _stream;
+      beast::basic_stream< stream_protocol > _stream;
       beast::flat_buffer _buffer;
       bool _is_open = false;
 
       std::string _host;
       uint32_t    _port = 0;
+      stream_protocol::endpoint _endpoint;
+
+      uint32_t _timeout = 0;
 
       http_client();
 
       void read_thread_main();
 
    public:
-      http_client( parse_response_callback_t cb, const std::string& http_content_type );
+      http_client( parse_response_callback_t cb, const std::string& http_content_type, uint32_t timeout = DEFAULT_REQUEST_TIMEOUT_MS );
       ~http_client();
 
-      void connect( const std::string& host, uint32_t port );
+      void connect( const stream_protocol::endpoint& endpoint );
       bool is_open() const;
       void close();
 
-      std::future< call_result > send_request( uint32_t id, const std::string& bytes );
+      std::shared_future< call_result > send_request( uint32_t id, const std::string& bytes );
 };
 
 } // koinos::net

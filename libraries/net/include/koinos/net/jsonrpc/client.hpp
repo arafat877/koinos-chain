@@ -15,27 +15,53 @@ typedef std::variant<std::any, koinos::exception> call_result;
 class jsonrpc_client {
    private:
       http_client _client;
-      std::atomic< uint32_t >                _next_id;
+      std::atomic< uint32_t >                _next_id = 0;
+
+      template< typename Params >
+      typename std::enable_if_t< koinos::pack::jsonifiable< Params >::value, nlohmann::json >
+      create_request( const std::string& method, const Params& params )
+      {
+         static_assert(!koinos::pack::jsonifiable<Params>::value);
+         LOG(info) << params;
+         nlohmann::json j;
+         koinos::pack::to_json( j, params );
+
+         return nlohmann::json{
+            {"id", _next_id++},
+            {"jsonrpc", "2.0"},
+            {"method", method},
+            {"params", std::move( j )}
+         };
+      }
+
+      template< typename Params >
+      typename std::enable_if_t< !koinos::pack::jsonifiable< Params >::value, nlohmann::json >
+      create_request( const std::string& method, const Params& params )
+      {
+         return nlohmann::json{
+            {"id", _next_id++},
+            {"jsonrpc", "2.0"},
+            {"method", method},
+            {"params", params}
+         };
+      }
 
    public:
       jsonrpc_client();
+      jsonrpc_client( uint32_t timeout );
 
-      void connect( const std::string& host, uint32_t port );
+      void connect( const stream_protocol::endpoint& );
       bool is_open() const;
       void close();
 
       template< typename Result, typename Params >
       std::future< Result > call_async( const std::string& method, const Params& params )
       {
-         nlohmann::json j;
-         j["id"] = _next_id++;
-         j["jsonrpc"] = "2.0";
-         j["method"] = "method";
-         koinos::pack::to_json( j["params"], params );
+         auto j = create_request( method, params );
 
          return std::async(
             std::launch::async,
-            []( std::future< call_result >&& fut )
+            []( std::shared_future< call_result >&& fut )
             {
                Result result;
                fut.wait();
@@ -54,7 +80,7 @@ class jsonrpc_client {
 
                return result;
             },
-            _client.send_request( j["id"].get< uint32_t >(), j.dump() )
+            _client.send_request( j["id"].template get< uint32_t >(), j.dump() )
          );
       }
 

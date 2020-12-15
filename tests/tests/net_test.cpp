@@ -2,6 +2,8 @@
 
 #include <koinos/tests/net_fixture.hpp>
 
+#include <koinos/net/client.hpp>
+
 #include <koinos/exception.hpp>
 
 BOOST_FIXTURE_TEST_SUITE( net_tests, net_fixture )
@@ -10,6 +12,9 @@ using json = koinos::net::jsonrpc::json;
 
 BOOST_AUTO_TEST_CASE( net_tests )
 { try {
+   socket = std::make_unique< boost::asio::local::stream_protocol::socket >( ioc, endpoint.protocol() );
+   socket->connect( unix_socket.string() );
+
    BOOST_TEST_MESSAGE( "adding method handlers [add, sub, mul, div]" );
 
    request_handler->add_method_handler( "add", []( const json::object_t& j ) -> json
@@ -110,6 +115,30 @@ BOOST_AUTO_TEST_CASE( net_tests )
    BOOST_REQUIRE_EQUAL( res.jsonrpc, "2.0" );
    BOOST_REQUIRE_EQUAL( std::get< uint64_t >( res.id ), 4 );
    BOOST_REQUIRE_EQUAL( res.result->get< uint64_t >(), 20 );
+
+} KOINOS_CATCH_LOG_AND_RETHROW(info) }
+
+BOOST_AUTO_TEST_CASE( client_tests )
+{ try {
+   request_handler->add_method_handler( "add", []( const json::object_t& j ) -> json
+   {
+      json result = j.at( "a" ).get< uint64_t >() + j.at( "b" ).get< uint64_t >();
+      return result;
+   } );
+
+   // 100 ms timeout
+   //koinos::net::client c( koinos::net::jsonrpc::jsonrpc_client( 100 ) );
+   koinos::net::client c;
+   c.connect( endpoint );
+   c.call< uint32_t >( "add", json{{"a", 1}, {"b", 2}} );
+
+   try
+   {
+      c.call< uint32_t >( "sub", json{{"a", 1}, {"b", 2}} );
+      BOOST_REQUIRE(false);
+   } catch( koinos::exception& ) {}
+
+   BOOST_TEST_MESSAGE("foobar");
 
 } KOINOS_CATCH_LOG_AND_RETHROW(info) }
 

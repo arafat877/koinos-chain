@@ -62,10 +62,6 @@ int main( int argc, char** argv )
          koinos::plugins::chain::chain_plugin >
          ( argc, argv );
 
-      koinos::net::client c;
-      c.call< uint32_t >( "test", 0 );
-      c.call_async< uint32_t >( "test", 0 );
-
       if( !initialized ) return EXIT_SUCCESS;
 
       koinos::initialize_logging( appbase::app().data_dir(), "koinosd_%3N.log" );

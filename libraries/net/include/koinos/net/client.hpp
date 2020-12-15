@@ -21,10 +21,9 @@ struct client
 
    public:
       template< typename T >
-      void set_client_impl( T&& t )
-      {
-         _client_impl = t;
-      }
+      client( T&& t ) :
+         _client_impl( t )
+      {}
 
       template< typename Result, typename Params >
       std::future< Result > call_async( const std::string& method, const Params& params )
@@ -44,6 +43,36 @@ struct client
             [&]( auto&& c )
             {
                return c.template call< Result >( method, params );
+            }
+         }, _client_impl );
+      }
+
+      void connect( const stream_protocol::endpoint& endpoint )
+      {
+         std::visit( koinos::overloaded {
+            [&]( auto&& c )
+            {
+               c.connect( endpoint );
+            }
+         }, _client_impl );
+      }
+
+      void is_open()
+      {
+         std::visit( koinos::overloaded {
+            [&]( auto&& c )
+            {
+               return c.is_open();
+            }
+         }, _client_impl );
+      }
+
+      void close()
+      {
+         std::visit( koinos::overloaded {
+            [&]( auto&& c )
+            {
+               c.close();
             }
          }, _client_impl );
       }

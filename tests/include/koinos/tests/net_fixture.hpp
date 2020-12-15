@@ -3,6 +3,8 @@
 #include <thread>
 #include <memory>
 
+#include <nlohmann/json.hpp>
+
 #include <koinos/net/jsonrpc/server.hpp>
 
 #include <boost/asio.hpp>
@@ -18,6 +20,8 @@ struct net_fixture
    std::unique_ptr< boost::asio::local::stream_protocol::socket > socket;
    std::unique_ptr< std::thread > thread;
 
+   boost::asio::local::stream_protocol::endpoint endpoint;
+
    net_fixture()
    {
       request_handler = std::make_shared< koinos::net::jsonrpc::request_handler >();
@@ -25,7 +29,7 @@ struct net_fixture
       boost::filesystem::path tmp = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
       boost::filesystem::create_directory( tmp );
       unix_socket = tmp / "unit_test.sock" ;
-      boost::asio::local::stream_protocol::endpoint endpoint( unix_socket.string() );
+      endpoint = boost::asio::local::stream_protocol::endpoint( unix_socket.string() );
 
       // Create and launch a listening port
       std::make_shared< koinos::net::jsonrpc::listener >(
@@ -36,8 +40,8 @@ struct net_fixture
 
       thread = std::make_unique< std::thread >( [&]{ ioc.run(); } );
 
-      socket = std::make_unique< boost::asio::local::stream_protocol::socket >( ioc, endpoint.protocol() );
-      socket->connect( unix_socket.string() );
+      //socket = std::make_unique< boost::asio::local::stream_protocol::socket >( ioc, endpoint.protocol() );
+      //socket->connect( unix_socket.string() );
    }
 
    ~net_fixture()

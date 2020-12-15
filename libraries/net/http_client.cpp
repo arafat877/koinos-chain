@@ -1,33 +1,41 @@
 #include <koinos/net/http_client.hpp>
 
+#include <boost/beast/http.hpp>
+
 namespace koinos::net {
+
+namespace http = beast::http;
 
 http_client::http_client() :
    _stream( _ioc )
-{}
+{
+   _ioc_thread = std::make_unique< std::thread >( [&](){ _ioc.run(); } );
+}
 
-http_client::http_client( parse_response_callback_t cb, const std::string& http_content_type ) :
+http_client::http_client( parse_response_callback_t cb, const std::string& http_content_type, uint32_t timeout ) :
    _stream( _ioc ),
    _parse_response( cb ),
-   _content_type( http_content_type )
+   _content_type( http_content_type ),
+   _timeout( timeout )
 {}
 
 http_client::~http_client()
 {
-   if( is_open() ) close();
+   close();
+   _ioc.stop();
+   if( _ioc_thread )
+      _ioc_thread->join();
 }
 
-void http_client::connect( const std::string& host, uint32_t port )
+void http_client::connect( const stream_protocol::endpoint& endpoint )
 {
    if( is_open() ) return; // TODO: Throw
 
-   _host = host;
-   _port = port;
+   _endpoint = endpoint;
 
-   tcp::resolver resolver( _ioc );
-   auto results = resolver.resolve( _host, std::to_string(_port) );
-   _stream.connect( results );
+   _stream.connect( _endpoint );
    _is_open = true;
+   _read_thread = std::make_unique< std::thread >( [this](){ read_thread_main(); } );
 }
 
 bool http_client::is_open() const
@@ -38,12 +46,13 @@ bool http_client::is_open() const
 void http_client::close()
 {
    if( !is_open() ) return;
-
-   _stream.close();
    _is_open = false;
+   _stream.close();
+   _read_thread->join();
+   _read_thread.reset();
 }
 
-std::future< call_result > http_client::send_request( uint32_t id, const std::string& bytes )
+std::shared_future< call_result > http_client::send_request( uint32_t id, const std::string& bytes )
 {
    if (_request_map.find(id) != _request_map.end())
    {
@@ -51,34 +60,41 @@ std::future< call_result > http_client::send_request( uint32_t id, const std::st
       throw std::exception();
    }
 
-   http::request< http::string_body > req;
-   req.version( 11 );
-   req.method( http::verb::get );
-   req.set( http::field::host, _host );
+   http::request< http::string_body > req { http::verb::get, "/", 11 };
+   req.set( http::field::host, "127.0.0.1" );
    req.set( http::field::user_agent, BOOST_BEAST_VERSION_STRING );
-   req.set( http::field::content_type, _content_type );
-   req.set( http::field::body, bytes );
+   req.body() = bytes;
+   req.keep_alive( true );
+   req.prepare_payload();
 
    http::write( _stream, req );
 
    std::promise< call_result > prom;
-   auto fut = prom.get_future();
+   std::shared_future fut( prom.get_future() );
 
+   // TODO: Guard with lock
    _request_map[id] = std::move(prom);
 
-   // TODO: Add request to timeout map
+   std::async(std::launch::async, [fut,id,this]()
+   {
+      auto status = fut.wait_for( std::chrono::milliseconds( _timeout ) );
+      if( status == std::future_status::timeout )
+      {
+         // TODO: Guard with lock
+         _request_map[id].set_value( koinos::exception( "Request timeout" ) );
+         _request_map.erase( id );
+      }
+   });
 
    return fut;
 }
 
 void http_client::read_thread_main()
 {
-   while (true)
-   {
+   while( is_open() )
+   { try {
       http::response< http::string_body > res;
       http::read( _stream, _buffer, res );
-
-      LOG(info) << res;
 
       call_result parsed_res;
       uint32_t id = _parse_response( res.body(), parsed_res );
@@ -89,9 +105,7 @@ void http_client::read_thread_main()
          req->second.set_value( parsed_res );
          _request_map.erase( req );
       }
-
-      // TODO: Check for timeouts
-   }
+   } catch( boost::exception& ) {} }
 }
 
 } // koinos::net
