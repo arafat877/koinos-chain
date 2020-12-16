@@ -1,6 +1,6 @@
 file(GLOB HEADERS "include/koinos/net/jsonrpc/*.hpp")
 
-find_package(Boost REQUIRED COMPONENTS system)
+find_package(Boost CONFIG REQUIRED COMPONENTS system)
 
 add_library(koinos_net ${HEADERS}
    jsonrpc/client.cpp
@@ -9,4 +9,6 @@ add_library(koinos_net ${HEADERS}
 )
 
 target_include_directories(koinos_net PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
-target_link_libraries(koinos_net PUBLIC Boost::system koinos_exception koinos_log koinos_types koinos_util nlohmann_json )
+target_link_libraries(koinos_net PUBLIC Boost::system Koinos::exception Koinos::log Koinos::types Koinos::util nlohmann_json)
+add_library(Koinos::net ALIAS koinos_net)
+

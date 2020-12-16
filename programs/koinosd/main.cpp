@@ -14,8 +14,6 @@
 #include <koinos/plugins/chain/chain_plugin.hpp>
 #include <koinos/plugins/block_producer/block_producer_plugin.hpp>
 
-#include <koinos/net/client.hpp>
-
 const std::string& version_string()
 {
    static std::string v_str = "0.1";
