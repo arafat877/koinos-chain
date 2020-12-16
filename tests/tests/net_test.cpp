@@ -138,6 +138,14 @@ BOOST_AUTO_TEST_CASE( client_tests )
       BOOST_REQUIRE(false);
    } catch( koinos::exception& ) {}
 
+   try
+   {
+      c.call< std::string >( "add", json{{"a", 1}, {"b", 2}} );
+      BOOST_REQUIRE(false);
+   } catch( std::exception& ) {}
+
+   c.call_async< uint32_t >( "add", json{{"a", 1}, {"b", 2}} ).wait();
+
    BOOST_TEST_MESSAGE("foobar");
 
 } KOINOS_CATCH_LOG_AND_RETHROW(info) }
