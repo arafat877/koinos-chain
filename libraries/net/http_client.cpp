@@ -62,22 +62,22 @@ std::shared_future< call_result > http_client::send_request( uint32_t id, const 
 
    http::write( *_stream, req );
 
-   std::promise< call_result > prom;
-   std::shared_future fut( prom.get_future() );
+   request_item item;
+   std::shared_future fut( item.result_promise.get_future() );
 
-   // TODO: Guard with lock
-   _request_map[id] = std::move(prom);
-
-   std::async(std::launch::async, [fut,id,this]()
+   item.timeout_future = std::async(std::launch::async, [fut,id,this]()
    {
       auto status = fut.wait_for( std::chrono::milliseconds( _timeout ) );
       if( status == std::future_status::timeout )
       {
          // TODO: Guard with lock
-         _request_map[id].set_value( koinos::exception( "Request timeout" ) );
-         _request_map.erase( id );
+         _request_map[id].result_promise.set_value( koinos::exception( "Request timeout" ) );
+         _timeouts.push_back( id );
       }
    });
+
+   // TODO: Guard with lock
+   _request_map[id] = std::move( item );
 
    return fut;
 }
@@ -95,8 +95,14 @@ void http_client::read_thread_main()
       auto req = _request_map.find( id );
       if (req != _request_map.end())
       {
-         req->second.set_value( parsed_res );
+         req->second.result_promise.set_value( parsed_res );
          _request_map.erase( req );
+      }
+
+      while( _timeouts.size() )
+      {
+         _request_map.erase( _timeouts.front() );
+         _timeouts.pop_front();
       }
    } catch( boost::exception& ) {} }
 }

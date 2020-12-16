@@ -50,21 +50,26 @@ class http_client
    private:
       static constexpr std::size_t MAX_QUEUE_SIZE = 1024;
 
-      struct request
+      using parse_response_callback_t =
+         std::function< uint32_t(const std::string&, call_result&) >;
+
+      struct request_item
       {
-         uint32_t id;
-         std::vector< uint8_t > payload;
+         std::promise< call_result >   result_promise;
+         std::future< void >           timeout_future;
       };
+
+      struct
 
       std::map<
          uint32_t,
-         std::promise< call_result > >                            _request_map;
+         request_item >                                           _request_map;
       std::unique_ptr< std::thread >                              _read_thread;
       std::unique_ptr< std::mutex >                               _mutex;
+      std::deque< uint32_t >                                      _timeouts;
 
       std::string _content_type;
-      using parse_response_callback_t =
-         std::function< uint32_t(const std::string&, call_result&) >;
+
       parse_response_callback_t                                   _parse_response;
 
       std::unique_ptr< net::io_context >    _ioc;
