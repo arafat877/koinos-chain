@@ -36,7 +36,13 @@ uint32_t parse_response( const std::string& msg, call_result& result )
 }
 
 jsonrpc_client::jsonrpc_client() :
-   _client( parse_response, JSON_HTML_CONTENT_TYPE )
+   _client( parse_response, JSON_HTML_CONTENT_TYPE ),
+   _next_id( std::make_unique< std::atomic< uint32_t > >() )
+{}
+
+jsonrpc_client::jsonrpc_client( uint32_t timeout ) :
+   _client( parse_response, JSON_HTML_CONTENT_TYPE, timeout ),
+   _next_id( std::make_unique< std::atomic< uint32_t > >() )
 {}
 
 void jsonrpc_client::connect( const stream_protocol::endpoint& endpoint )

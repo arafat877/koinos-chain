@@ -6,14 +6,9 @@ namespace koinos::net {
 
 namespace http = beast::http;
 
-http_client::http_client() :
-   _stream( _ioc )
-{
-   _ioc_thread = std::make_unique< std::thread >( [&](){ _ioc.run(); } );
-}
-
 http_client::http_client( parse_response_callback_t cb, const std::string& http_content_type, uint32_t timeout ) :
-   _stream( _ioc ),
+   _ioc( std::make_unique< net::io_context >() ),
+   _stream( std::make_unique< beast::basic_stream< stream_protocol > >( *_ioc ) ),
    _parse_response( cb ),
    _content_type( http_content_type ),
    _timeout( timeout )
@@ -21,10 +16,8 @@ http_client::http_client( parse_response_callback_t cb, const std::string& http_
 
 http_client::~http_client()
 {
-   close();
-   _ioc.stop();
-   if( _ioc_thread )
-      _ioc_thread->join();
+   if( _ioc )
+      close();
 }
 
 void http_client::connect( const stream_protocol::endpoint& endpoint )
@@ -33,7 +26,7 @@ void http_client::connect( const stream_protocol::endpoint& endpoint )
 
    _endpoint = endpoint;
 
-   _stream.connect( _endpoint );
+   _stream->connect( _endpoint );
    _is_open = true;
    _read_thread = std::make_unique< std::thread >( [this](){ read_thread_main(); } );
 }
@@ -47,7 +40,7 @@ void http_client::close()
 {
    if( !is_open() ) return;
    _is_open = false;
-   _stream.close();
+   _stream->close();
    _read_thread->join();
    _read_thread.reset();
 }
@@ -67,7 +60,7 @@ std::shared_future< call_result > http_client::send_request( uint32_t id, const 
    req.keep_alive( true );
    req.prepare_payload();
 
-   http::write( _stream, req );
+   http::write( *_stream, req );
 
    std::promise< call_result > prom;
    std::shared_future fut( prom.get_future() );
@@ -94,7 +87,7 @@ void http_client::read_thread_main()
    while( is_open() )
    { try {
       http::response< http::string_body > res;
-      http::read( _stream, _buffer, res );
+      http::read( *_stream, _buffer, res );
 
       call_result parsed_res;
       uint32_t id = _parse_response( res.body(), parsed_res );

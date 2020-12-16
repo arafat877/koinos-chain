@@ -60,16 +60,15 @@ class http_client
          uint32_t,
          std::promise< call_result > >                            _request_map;
       std::unique_ptr< std::thread >                              _read_thread;
-      std::unique_ptr< std::thread >                              _ioc_thread;
-      std::mutex                                                  _mutex;
+      std::unique_ptr< std::mutex >                               _mutex;
 
       std::string _content_type;
       using parse_response_callback_t =
          std::function< uint32_t(const std::string&, call_result&) >;
       parse_response_callback_t                                   _parse_response;
 
-      net::io_context    _ioc;
-      beast::basic_stream< stream_protocol > _stream;
+      std::unique_ptr< net::io_context >    _ioc;
+      std::unique_ptr< beast::basic_stream< stream_protocol > > _stream;
       beast::flat_buffer _buffer;
       bool _is_open = false;
 
@@ -79,13 +78,17 @@ class http_client
 
       uint32_t _timeout = 0;
 
-      http_client();
-
       void read_thread_main();
 
    public:
       http_client( parse_response_callback_t cb, const std::string& http_content_type, uint32_t timeout = DEFAULT_REQUEST_TIMEOUT_MS );
+      http_client( const http_client& ) = delete;
+      http_client( http_client&& ) = default;
+
       ~http_client();
+
+      http_client& operator=( const http_client& ) = delete;
+      http_client& operator=( http_client&& ) = default;
 
       void connect( const stream_protocol::endpoint& endpoint );
       bool is_open() const;

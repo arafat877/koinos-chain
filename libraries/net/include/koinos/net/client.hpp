@@ -16,14 +16,28 @@ namespace koinos::net {
  */
 struct client
 {
+   using client_variant = std::variant< jsonrpc::jsonrpc_client >;
+
    private:
-      std::variant< jsonrpc::jsonrpc_client > _client_impl;
+      client_variant _client_impl;
 
    public:
+      client() = default;
+      client( client&& ) = default;
+
       template< typename T >
       client( T&& t ) :
-         _client_impl( t )
+         _client_impl( std::forward< T >( t ) )
       {}
+
+      template< typename T >
+      client& operator=( T&& t )
+      {
+         _client_impl = std::move( client_variant( std::forward< T >( t ) ) );
+         return *this;
+      }
+
+      client& operator=( client&& ) = default;
 
       template< typename Result, typename Params >
       std::future< Result > call_async( const std::string& method, const Params& params )

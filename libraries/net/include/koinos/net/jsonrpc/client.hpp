@@ -15,7 +15,7 @@ typedef std::variant<std::any, koinos::exception> call_result;
 class jsonrpc_client {
    private:
       http_client _client;
-      std::atomic< uint32_t >                _next_id = 0;
+      std::unique_ptr< std::atomic< uint32_t > > _next_id = 0;
 
       template< typename Params >
       typename std::enable_if_t< koinos::pack::jsonifiable< Params >::value, nlohmann::json >
@@ -27,7 +27,7 @@ class jsonrpc_client {
          koinos::pack::to_json( j, params );
 
          return nlohmann::json{
-            {"id", _next_id++},
+            {"id", _next_id->fetch_add( 1 )},
             {"jsonrpc", "2.0"},
             {"method", method},
             {"params", std::move( j )}
@@ -39,7 +39,7 @@ class jsonrpc_client {
       create_request( const std::string& method, const Params& params )
       {
          return nlohmann::json{
-            {"id", _next_id++},
+            {"id", _next_id->fetch_add( 1 )},
             {"jsonrpc", "2.0"},
             {"method", method},
             {"params", params}
@@ -49,6 +49,11 @@ class jsonrpc_client {
    public:
       jsonrpc_client();
       jsonrpc_client( uint32_t timeout );
+      jsonrpc_client( const jsonrpc_client& ) = delete;
+      jsonrpc_client( jsonrpc_client&& ) = default;
+
+      jsonrpc_client& operator=( const jsonrpc_client& ) = delete;
+      jsonrpc_client& operator=( jsonrpc_client&& ) = default;
 
       void connect( const stream_protocol::endpoint& );
       bool is_open() const;

@@ -127,8 +127,8 @@ BOOST_AUTO_TEST_CASE( client_tests )
    } );
 
    // 100 ms timeout
-   //koinos::net::client c( koinos::net::jsonrpc::jsonrpc_client( 100 ) );
    koinos::net::client c;
+   c = koinos::net::jsonrpc::jsonrpc_client( 100 );
    c.connect( endpoint );
    c.call< uint32_t >( "add", json{{"a", 1}, {"b", 2}} );
 
