@@ -5,6 +5,7 @@
 #include <koinos/net/client.hpp>
 
 #include <koinos/exception.hpp>
+#include <koinos/pack/classes.hpp>
 
 BOOST_FIXTURE_TEST_SUITE( net_tests, net_fixture )
 
@@ -124,7 +125,12 @@ BOOST_AUTO_TEST_CASE( client_tests )
    {
       json result = j.at( "a" ).get< uint64_t >() + j.at( "b" ).get< uint64_t >();
       return result;
-   } );
+   });
+
+   request_handler->add_method_handler( "void", []( const json::object_t& j ) -> json
+   {
+      return json();
+   });
 
    // 100 ms timeout
    koinos::net::client c;
@@ -146,7 +152,16 @@ BOOST_AUTO_TEST_CASE( client_tests )
 
    c.call_async< uint32_t >( "add", json{{"a", 1}, {"b", 2}} ).wait();
 
-   BOOST_TEST_MESSAGE("foobar");
+   c.call< koinos::types::thunks::void_type >( "void", koinos::types::thunks::void_type() );
+
+   BOOST_REQUIRE( c.is_open() );
+
+   c.close();
+
+   BOOST_REQUIRE( !c.is_open() );
+
+   c.connect( endpoint );
+   c.call< uint32_t >( "add", json{{"a", 1}, {"b", 2}} );
 
 } KOINOS_CATCH_LOG_AND_RETHROW(info) }
 

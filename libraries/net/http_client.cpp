@@ -1,6 +1,10 @@
 #include <koinos/net/http_client.hpp>
 
+#include <koinos/util.hpp>
+
 #include <boost/beast/http.hpp>
+
+#define LOCALHOST "127.0.0.1"
 
 namespace koinos::net {
 
@@ -20,13 +24,15 @@ http_client::~http_client()
       close();
 }
 
-void http_client::connect( const stream_protocol::endpoint& endpoint )
+void http_client::connect()
 {
-   if( is_open() ) return; // TODO: Throw
+   std::visit( koinos::overloaded{
+      [&]( auto&& e )
+      {
+         _stream->connect( e );
+      }},
+      _endpoint );
 
-   _endpoint = endpoint;
-
-   _stream->connect( _endpoint );
    _is_open = true;
    _read_thread = std::make_unique< std::thread >( [this](){ read_thread_main(); } );
 }
@@ -54,8 +60,20 @@ std::shared_future< call_result > http_client::send_request( uint32_t id, const 
    }
 
    http::request< http::string_body > req { http::verb::get, "/", 11 };
-   req.set( http::field::host, "127.0.0.1" );
+
+   std::visit( koinos::overloaded{
+      [&]( tcp::endpoint& e )
+      {
+         req.set( http::field::host, e.address() );
+      },
+      [&]( stream_protocol::endpoint& )
+      {
+         req.set( http::field::host, LOCALHOST );
+      }},
+      _endpoint );
+
    req.set( http::field::user_agent, BOOST_BEAST_VERSION_STRING );
+   req.set( http::field::content_type, _content_type );
    req.body() = bytes;
    req.keep_alive( true );
    req.prepare_payload();
@@ -65,7 +83,7 @@ std::shared_future< call_result > http_client::send_request( uint32_t id, const 
    request_item item;
    std::shared_future fut( item.result_promise.get_future() );
 
-   item.timeout_future = std::async(std::launch::async, [fut,id,this]()
+   item.timeout_future = std::async( std::launch::async, [fut,id,this]()
    {
       auto status = fut.wait_for( std::chrono::milliseconds( _timeout ) );
       if( status == std::future_status::timeout )
@@ -74,7 +92,7 @@ std::shared_future< call_result > http_client::send_request( uint32_t id, const 
          _request_map[id].result_promise.set_value( koinos::exception( "Request timeout" ) );
          _timeouts.push_back( id );
       }
-   });
+   } );
 
    // TODO: Guard with lock
    _request_map[id] = std::move( item );

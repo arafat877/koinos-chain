@@ -23,6 +23,7 @@ struct client
 
    public:
       client() = default;
+      client( const client& ) = delete;
       client( client&& ) = default;
 
       template< typename T >
@@ -37,6 +38,7 @@ struct client
          return *this;
       }
 
+      client& operator=( const client& ) = delete;
       client& operator=( client&& ) = default;
 
       template< typename Result, typename Params >
@@ -46,8 +48,8 @@ struct client
             [&]( auto&& c )
             {
                return c.template call_async< Result >( method, params );
-            }
-         }, _client_impl );
+            }},
+            _client_impl );
       }
 
       template< typename Result, typename Params >
@@ -57,28 +59,29 @@ struct client
             [&]( auto&& c )
             {
                return c.template call< Result >( method, params );
-            }
-         }, _client_impl );
+            }},
+            _client_impl );
       }
 
-      void connect( const stream_protocol::endpoint& endpoint )
+      template< typename Endpoint >
+      void connect( const Endpoint& e )
       {
          std::visit( koinos::overloaded {
             [&]( auto&& c )
             {
-               c.connect( endpoint );
-            }
-         }, _client_impl );
+               c.connect( e );
+            }},
+            _client_impl );
       }
 
-      void is_open()
+      bool is_open()
       {
-         std::visit( koinos::overloaded {
+         return std::visit( koinos::overloaded {
             [&]( auto&& c )
             {
                return c.is_open();
-            }
-         }, _client_impl );
+            }},
+            _client_impl );
       }
 
       void close()
@@ -87,8 +90,8 @@ struct client
             [&]( auto&& c )
             {
                c.close();
-            }
-         }, _client_impl );
+            }},
+            _client_impl );
       }
 };
 

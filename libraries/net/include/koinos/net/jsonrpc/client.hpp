@@ -14,15 +14,13 @@ typedef std::variant<std::any, koinos::exception> call_result;
 
 class jsonrpc_client {
    private:
-      http_client _client;
-      std::unique_ptr< std::atomic< uint32_t > > _next_id = 0;
+      http_client                                  _client;
+      std::unique_ptr< std::atomic< uint32_t > >   _next_id = 0;
 
       template< typename Params >
       typename std::enable_if_t< koinos::pack::jsonifiable< Params >::value, nlohmann::json >
       create_request( const std::string& method, const Params& params )
       {
-         static_assert(!koinos::pack::jsonifiable<Params>::value);
-         LOG(info) << params;
          nlohmann::json j;
          koinos::pack::to_json( j, params );
 
@@ -55,7 +53,12 @@ class jsonrpc_client {
       jsonrpc_client& operator=( const jsonrpc_client& ) = delete;
       jsonrpc_client& operator=( jsonrpc_client&& ) = default;
 
-      void connect( const stream_protocol::endpoint& );
+      template< typename Endpoint >
+      void connect( const Endpoint& e )
+      {
+         _client.connect( e );
+      }
+
       bool is_open() const;
       void close();
 

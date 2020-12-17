@@ -45,14 +45,9 @@ jsonrpc_client::jsonrpc_client( uint32_t timeout ) :
    _next_id( std::make_unique< std::atomic< uint32_t > >() )
 {}
 
-void jsonrpc_client::connect( const stream_protocol::endpoint& endpoint )
-{
-   _client.connect( endpoint );
-}
-
 bool jsonrpc_client::is_open() const
 {
-   return true;
+   return _client.is_open();
 }
 
 void jsonrpc_client::close()

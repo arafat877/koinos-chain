@@ -22,6 +22,7 @@ namespace koinos::net {
 
 namespace beast = boost::beast;
 namespace net = boost::asio;
+using tcp = net::ip::tcp;
 using stream_protocol = net::generic::stream_protocol;
 
 /**
@@ -31,6 +32,17 @@ using stream_protocol = net::generic::stream_protocol;
  * of parsing a bad response.
  */
 using call_result = std::variant< std::any, koinos::exception >;
+
+/**
+ * Responses are multiplexed by a protocol provided id. (Such as jsonrpc id
+ * field) However, the http client does not know how to parse said IDs. The
+ * protocol must provide a callback to parse the raw response. In order to
+ * avoid parsing the response multiple times, the parsed response should be
+ * stored in a call result (either an any or and error) to be returned to
+ * the correct calling thread via a promise.
+ */
+using parse_response_callback_t =
+   std::function< uint32_t(const std::string&, call_result&) >;
 
 /**
  * http_client is designed to manage sending http GET requests asynchronously.
@@ -48,41 +60,39 @@ using call_result = std::variant< std::any, koinos::exception >;
 class http_client
 {
    private:
-      static constexpr std::size_t MAX_QUEUE_SIZE = 1024;
-
-      using parse_response_callback_t =
-         std::function< uint32_t(const std::string&, call_result&) >;
-
       struct request_item
       {
          std::promise< call_result >   result_promise;
          std::future< void >           timeout_future;
       };
 
-      struct
+      struct remote_endpoint
+      {
+         std::string                   hostname;
+         std::string                   port;
+         tcp::resolver::results_type   resolution;
+      };
 
-      std::map<
-         uint32_t,
-         request_item >                                           _request_map;
-      std::unique_ptr< std::thread >                              _read_thread;
-      std::unique_ptr< std::mutex >                               _mutex;
-      std::deque< uint32_t >                                      _timeouts;
+      parse_response_callback_t           _parse_response;
 
-      std::string _content_type;
+      std::map< uint32_t, request_item >  _request_map;
+      std::unique_ptr< std::thread >      _read_thread;
+      std::unique_ptr< std::mutex >       _mutex;
+      std::deque< uint32_t >              _timeouts;
 
-      parse_response_callback_t                                   _parse_response;
-
-      std::unique_ptr< net::io_context >    _ioc;
+      std::unique_ptr< net::io_context >  _ioc;
       std::unique_ptr< beast::basic_stream< stream_protocol > > _stream;
-      beast::flat_buffer _buffer;
-      bool _is_open = false;
+      beast::flat_buffer                  _buffer;
+      bool                                _is_open = false;
 
-      std::string _host;
-      uint32_t    _port = 0;
-      stream_protocol::endpoint _endpoint;
+      std::string                         _content_type;
+      std::variant<
+         tcp::endpoint,
+         stream_protocol::endpoint >      _endpoint;
 
-      uint32_t _timeout = 0;
+      uint32_t                            _timeout = 0;
 
+      void connect();
       void read_thread_main();
 
    public:
@@ -95,7 +105,16 @@ class http_client
       http_client& operator=( const http_client& ) = delete;
       http_client& operator=( http_client&& ) = default;
 
-      void connect( const stream_protocol::endpoint& endpoint );
+      template< typename Endpoint >
+      void connect( const Endpoint& endpoint )
+      {
+         if( is_open() ) return; // TODO: Throw
+
+         _endpoint = endpoint;
+
+         connect();
+      }
+
       bool is_open() const;
       void close();
 
