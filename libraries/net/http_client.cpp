@@ -11,6 +11,7 @@ namespace koinos::net {
 namespace http = beast::http;
 
 http_client::http_client( parse_response_callback_t cb, const std::string& http_content_type, uint32_t timeout ) :
+   _mutex( std::make_unique< std::mutex >() ),
    _ioc( std::make_unique< net::io_context >() ),
    _stream( std::make_unique< beast::basic_stream< stream_protocol > >( *_ioc ) ),
    _parse_response( cb ),
@@ -87,13 +88,13 @@ std::shared_future< call_result > http_client::send_request( uint32_t id, const 
       auto status = fut.wait_for( std::chrono::milliseconds( _timeout ) );
       if( status == std::future_status::timeout )
       {
-         // TODO: Guard with lock
+         const std::lock_guard< std::mutex > lock( *_mutex );
          _request_map[id].result_promise.set_value( koinos::exception( "Request timeout" ) );
          _timeouts.push_back( id );
       }
    } );
 
-   // TODO: Guard with lock
+   const std::lock_guard< std::mutex > lock( *_mutex );
    _request_map[id] = std::move( item );
 
    return fut;
@@ -108,6 +109,8 @@ void http_client::read_thread_main()
 
       call_result parsed_res;
       uint32_t id = _parse_response( res.body(), parsed_res );
+
+      const std::lock_guard< std::mutex > lock( *_mutex );
 
       auto req = _request_map.find( id );
       if (req != _request_map.end())
