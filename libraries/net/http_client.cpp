@@ -55,8 +55,7 @@ std::shared_future< call_result > http_client::send_request( uint32_t id, const 
 {
    if (_request_map.find(id) != _request_map.end())
    {
-      // TODO: Throw koinos exception
-      throw std::exception();
+      KOINOS_THROW( http_exception, "Request ID conflict" );
    }
 
    http::request< http::string_body > req { http::verb::get, "/", 11 };

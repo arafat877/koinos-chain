@@ -25,6 +25,8 @@ namespace net = boost::asio;
 using tcp = net::ip::tcp;
 using stream_protocol = net::generic::stream_protocol;
 
+KOINOS_DECLARE_EXCEPTION( http_exception );
+
 /**
  * Call result allows sending of exceptions from parsing of the response
  * back to the caller. std::any should contain a parsed response and
@@ -108,7 +110,7 @@ class http_client
       template< typename Endpoint >
       void connect( const Endpoint& endpoint )
       {
-         if( is_open() ) return; // TODO: Throw
+         if( is_open() ) KOINOS_THROW( http_exception, "http client is already open" );
 
          _endpoint = endpoint;
 
