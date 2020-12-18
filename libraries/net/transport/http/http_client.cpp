@@ -1,4 +1,4 @@
-#include <koinos/net/http_client.hpp>
+#include <koinos/net/transport/http/http_client.hpp>
 
 #include <koinos/util.hpp>
 

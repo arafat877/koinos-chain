@@ -1,5 +1,5 @@
-#include <koinos/net/jsonrpc/client.hpp>
-#include <koinos/net/jsonrpc/exceptions.hpp>
+#include <koinos/net/protocol/jsonrpc/client.hpp>
+#include <koinos/net/protocol/jsonrpc/exceptions.hpp>
 
 #define JSON_HTML_CONTENT_TYPE "application/json"
 

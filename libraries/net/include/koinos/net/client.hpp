@@ -3,7 +3,7 @@
 #include <future>
 #include <variant>
 
-#include <koinos/net/jsonrpc/client.hpp>
+#include <koinos/net/protocol/jsonrpc/client.hpp>
 #include <koinos/util.hpp>
 
 namespace koinos::net {
