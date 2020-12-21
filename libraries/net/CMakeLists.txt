@@ -4,6 +4,7 @@ find_package(Boost CONFIG REQUIRED COMPONENTS system)
 
 add_library(koinos_net ${HEADERS}
    protocol/jsonrpc/client.cpp
+   protocol/jsonrpc/types.cpp
    transport/http/http_client.cpp
 )
 

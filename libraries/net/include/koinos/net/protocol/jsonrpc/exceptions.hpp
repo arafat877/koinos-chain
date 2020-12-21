@@ -1,7 +1,7 @@
 #pragma once
 #include <koinos/exception.hpp>
 
-namespace koinos::net::jsonrpc {
+namespace koinos::net::protocol::jsonrpc {
 
 KOINOS_DECLARE_EXCEPTION( jsonrpc_exception );
 

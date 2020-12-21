@@ -18,7 +18,7 @@
 
 #define DEFAULT_REQUEST_TIMEOUT_MS 10000
 
-namespace koinos::net {
+namespace koinos::net::transport::http {
 
 namespace beast = boost::beast;
 namespace net = boost::asio;

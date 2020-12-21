@@ -4,15 +4,16 @@
 
 #include <boost/beast/http.hpp>
 
-#define LOCALHOST "127.0.0.1"
 #define TIMEOUT_THRESHOLD 5
 #define RECONNECT_SLEEP_MS_MIN uint32_t(100)
 #define RECONNECT_SLEEP_MS_MAX uint32_t(10000)
 
 
-namespace koinos::net {
+namespace koinos::net::transport::http {
 
 namespace http = beast::http;
+
+constexpr const char* localhost = "127.0.0.1";
 
 http_client::http_client( parse_response_callback_t cb, const std::string& http_content_type, uint32_t timeout ) :
    _mutex( std::make_unique< std::mutex >() ),
@@ -72,7 +73,7 @@ std::shared_future< call_result > http_client::send_request( uint32_t id, const 
       },
       [&]( stream_protocol::endpoint& )
       {
-         req.set( http::field::host, LOCALHOST );
+         req.set( http::field::host, localhost );
       }},
       _endpoint );
 

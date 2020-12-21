@@ -1,17 +1,10 @@
 #include <koinos/net/protocol/jsonrpc/client.hpp>
 #include <koinos/net/protocol/jsonrpc/exceptions.hpp>
+#include <koinos/net/protocol/jsonrpc/types.hpp>
 
-#define JSON_HTML_CONTENT_TYPE "application/json"
+namespace koinos::net::protocol::jsonrpc {
 
-#define JSONRPC_PARSE_ERROR         -32700
-#define JSONRPC_INVALID_REQUEST     -32600
-#define JSONRPC_METHOD_NOT_FOUND    -32601
-#define JSONRPC_INVALID_PARAMS      -32602
-#define JSONRPC_INTERNAL_ERROR      -32603
-#define JSONRPC_SERVER_ERROR_LOWER  -32000
-#define JSONRPC_SERVER_ERROR_UPPER  -32099
-
-namespace koinos::net::jsonrpc {
+constexpr const char* json_content_type = "application/json";
 
 uint32_t parse_response( const std::string& msg, call_result& result )
 {
@@ -19,42 +12,42 @@ uint32_t parse_response( const std::string& msg, call_result& result )
    try
    {
       auto response = nlohmann::json::parse( msg );
-      if( response.find( "id" ) == response.end() )
+      if( response.find( field::id ) == response.end() )
          KOINOS_THROW( jsonrpc_exception, "Field 'id' missing from response" );
-      if( response.find( "jsonrpc" ) == response.end() )
+      if( response.find( field::jsonrpc ) == response.end() )
          KOINOS_THROW( jsonrpc_exception, "Field 'jsonrpc' missing from response" );
-      id = response["id"].get< uint32_t >();
+      id = response[field::id].get< uint32_t >();
 
-      if( response.find( "error" ) != response.end() )
+      if( response.find( field::error ) != response.end() )
       {
-         const auto& error = response["error"];
+         const auto& error = response[field::error];
 
-         if( error.find( "code" ) == error.end() )
+         if( error.find( field::code ) == error.end() )
             KOINOS_THROW( jsonrpc_exception, "Error field 'code' missing from response" );
 
-         std::string message = error.find( "message" ) != error.end() ? error["message"].get< std::string >() : "jsonrpc error";
-         int32_t code = error["code"].get< int32_t >();
+         std::string message = error.find( field::message ) != error.end() ? error[field::message].get< std::string >() : "jsonrpc error";
+         error_code code = error[field::code].get< error_code >();
 
          switch( code )
          {
-            case( JSONRPC_PARSE_ERROR ):
+            case( error_code::parse_error ):
                KOINOS_THROW( parse_error, message );
-            case( JSONRPC_INVALID_REQUEST ):
+            case( error_code::invalid_request ):
                KOINOS_THROW( invalid_request, message );
-            case( JSONRPC_METHOD_NOT_FOUND ):
+            case( error_code::method_not_found ):
                KOINOS_THROW( method_not_found, message );
-            case( JSONRPC_INVALID_PARAMS ):
+            case( error_code::invalid_params ):
                KOINOS_THROW( invalid_params, message );
-            case( JSONRPC_INTERNAL_ERROR ):
+            case( error_code::internal_error ):
                KOINOS_THROW( internal_error, message );
             default:
-               if( code >= JSONRPC_SERVER_ERROR_LOWER && code <= JSONRPC_SERVER_ERROR_UPPER )
+               if( code >= error_code::server_error_lower && code <= error_code::server_error )
                   KOINOS_THROW( server_error, message );
          }
       }
 
-      if( response.find( "result" ) != response.end() )
-         result = response["result"];
+      if( response.find( field::result ) != response.end() )
+         result = response[field::result];
    }
    catch( koinos::exception &e )
    {
@@ -73,12 +66,12 @@ uint32_t parse_response( const std::string& msg, call_result& result )
 }
 
 jsonrpc_client::jsonrpc_client() :
-   _client( parse_response, JSON_HTML_CONTENT_TYPE ),
+   _client( parse_response, json_content_type ),
    _next_id( std::make_unique< std::atomic< uint32_t > >() )
 {}
 
 jsonrpc_client::jsonrpc_client( uint32_t timeout ) :
-   _client( parse_response, JSON_HTML_CONTENT_TYPE, timeout ),
+   _client( parse_response, json_content_type, timeout ),
    _next_id( std::make_unique< std::atomic< uint32_t > >() )
 {}
 

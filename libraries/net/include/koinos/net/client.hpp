@@ -16,7 +16,7 @@ namespace koinos::net {
  */
 struct client
 {
-   using client_variant = std::variant< jsonrpc::jsonrpc_client >;
+   using client_variant = std::variant< protocol::jsonrpc::jsonrpc_client >;
 
    private:
       client_variant _client_impl;

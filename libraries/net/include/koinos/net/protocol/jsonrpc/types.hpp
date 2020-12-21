@@ -18,12 +18,13 @@ using id_type = std::variant< std::string, uint64_t, std::nullptr_t >;
 
 enum class error_code : int32_t
 {
-   parse_error      = -32700, // Parse error Invalid JSON was received by the server.
-   invalid_request  = -32600, // Invalid Request The JSON sent is not a valid Request object.
-   method_not_found = -32601, // Method not found The method does not exist / is not available.
-   invalid_params   = -32602, // Invalid params Invalid method parameter(s).
-   internal_error   = -32603, // Internal error Internal JSON-RPC error.
-   server_error     = -32000  // Server error (-32000 - -32099) Reserved for implementation-defined server-errors.
+   parse_error        = -32700, // Parse error Invalid JSON was received by the server.
+   invalid_request    = -32600, // Invalid Request The JSON sent is not a valid Request object.
+   method_not_found   = -32601, // Method not found The method does not exist / is not available.
+   invalid_params     = -32602, // Invalid params Invalid method parameter(s).
+   internal_error     = -32603, // Internal error Internal JSON-RPC error.
+   server_error       = -32000, // Server error (-32000 - -32099) Reserved for implementation-defined server-errors.
+   server_error_lower = -32099
 };
 
 struct exception : virtual std::exception
@@ -108,23 +109,8 @@ struct request
    }
 };
 
-void to_json( json& j, const request& r )
-{
-   j = json {
-      { field::jsonrpc, r.jsonrpc },
-      { field::id,      r.id },
-      { field::method,  r.method },
-      { field::params,  r.params }
-   };
-}
-
-void from_json( const json& j, request& r )
-{
-   j.at( field::jsonrpc ).get_to( r.jsonrpc );
-   j.at( field::id ).get_to( r.id );
-   j.at( field::method ).get_to( r.method );
-   j.at( field::params ).get_to( r.params );
-}
+void to_json( json& j, const request& r );
+void from_json( const json& j, request& r );
 
 struct error_type
 {
@@ -133,25 +119,8 @@ struct error_type
    std::optional< std::string > data;
 };
 
-void to_json( json& j, const error_type& e )
-{
-   j = json {
-      { field::code,    e.code },
-      { field::message, e.message }
-   };
-
-   if ( e.data.has_value() )
-      j[ field::data ] = e.data.value();
-}
-
-void from_json( const json& j, error_type& e )
-{
-   j.at( field::code ).get_to( e.code );
-   j.at( field::message ).get_to( e.message );
-
-   if ( j.contains( field::data ) )
-      e.data = j[ field::data ];
-}
+void to_json( json& j, const error_type& e );
+void from_json( const json& j, error_type& e );
 
 struct response
 {
@@ -161,49 +130,7 @@ struct response
    std::optional< json >       result;
 };
 
-void to_json( json& j, const response& r )
-{
-   if ( r.result.has_value() )
-   {
-      j = json {
-         { field::jsonrpc, r.jsonrpc },
-         { field::id, r.id },
-         { field::result, r.result.value() }
-      };
-   }
-   else if ( r.error.has_value() )
-   {
-      j = json {
-         { field::jsonrpc, r.jsonrpc },
-         { field::id, r.id },
-         { field::error, r.error.value() }
-      };
-   }
-   else
-   {
-      throw jsonrpc::exception( jsonrpc::error_code::parse_error, "failed to jsonify due to an invalid response object" );
-   }
-}
-
-void from_json( const json& j, response& r )
-{
-   j.at( field::id ).get_to( r.id );
-   j.at( field::jsonrpc ).get_to( r.jsonrpc );
-
-   if ( j.contains( field::result ) )
-   {
-      r.error.reset();
-      r.result = j[ field::result ];
-   }
-   else if ( j.contains( field::error ) )
-   {
-      r.result.reset();
-      r.error = j[ field::error ];
-   }
-   else
-   {
-      throw jsonrpc::exception( jsonrpc::error_code::parse_error, "failed to dejsonify due to an invalid response object" );
-   }
-}
+void to_json( json& j, const response& r );
+void from_json( const json& j, response& r );
 
 } // koinos::net::jsonrpc

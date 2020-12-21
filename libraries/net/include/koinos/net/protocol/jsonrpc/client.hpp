@@ -4,17 +4,18 @@
 #include <atomic>
 #include <future>
 
+#include <koinos/net/protocol/jsonrpc/fields.hpp>
 #include <koinos/net/transport/http/http_client.hpp>
 #include <koinos/pack/rt/json.hpp>
 #include <koinos/util.hpp>
 
-namespace koinos::net::jsonrpc {
+namespace koinos::net::protocol::jsonrpc {
 
 typedef std::variant<std::any, koinos::exception> call_result;
 
 class jsonrpc_client {
    private:
-      http_client                                  _client;
+      transport::http::http_client                 _client;
       std::unique_ptr< std::atomic< uint32_t > >   _next_id = 0;
 
       template< typename Params >
@@ -25,10 +26,10 @@ class jsonrpc_client {
          koinos::pack::to_json( j, params );
 
          return nlohmann::json{
-            {"id", _next_id->fetch_add( 1 )},
-            {"jsonrpc", "2.0"},
-            {"method", method},
-            {"params", std::move( j )}
+            {field::id, _next_id->fetch_add( 1 )},
+            {field::jsonrpc, "2.0"},
+            {field::method, method},
+            {field::params, std::move( j )}
          };
       }
 
@@ -37,10 +38,10 @@ class jsonrpc_client {
       create_request( const std::string& method, const Params& params )
       {
          return nlohmann::json{
-            {"id", _next_id->fetch_add( 1 )},
-            {"jsonrpc", "2.0"},
-            {"method", method},
-            {"params", params}
+            {field::id, _next_id->fetch_add( 1 )},
+            {field::jsonrpc, "2.0"},
+            {field::method, method},
+            {field::params, params}
          };
       }
 
@@ -88,7 +89,7 @@ class jsonrpc_client {
 
                return result;
             },
-            _client.send_request( j["id"].template get< uint32_t >(), j.dump() )
+            _client.send_request( j[field::id].template get< uint32_t >(), j.dump() )
          );
       }
 
