@@ -66,6 +66,7 @@ class http_client
       {
          std::promise< call_result >   result_promise;
          std::future< void >           timeout_future;
+         bool                          is_result_set = false;
       };
 
       struct remote_endpoint
@@ -80,7 +81,7 @@ class http_client
       std::map< uint32_t, request_item >  _request_map;
       std::unique_ptr< std::thread >      _read_thread;
       std::unique_ptr< std::mutex >       _mutex;
-      std::deque< uint32_t >              _timeouts;
+      std::deque< uint32_t >              _requests_to_remove;
 
       std::unique_ptr< net::io_context >  _ioc;
       std::unique_ptr< beast::basic_stream< stream_protocol > > _stream;
@@ -93,6 +94,7 @@ class http_client
          stream_protocol::endpoint >      _endpoint;
 
       uint32_t                            _timeout = 0;
+      uint32_t                            _consecutive_timeouts = 0;
 
       void connect();
       void read_thread_main();

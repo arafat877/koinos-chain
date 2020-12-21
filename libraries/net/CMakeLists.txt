@@ -5,7 +5,6 @@ find_package(Boost CONFIG REQUIRED COMPONENTS system)
 add_library(koinos_net ${HEADERS}
    protocol/jsonrpc/client.cpp
    transport/http/http_client.cpp
-   server.cpp
 )
 
 target_include_directories(koinos_net PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)

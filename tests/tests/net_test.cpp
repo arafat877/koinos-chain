@@ -348,6 +348,12 @@ BOOST_AUTO_TEST_CASE( client_tests )
       return json();
    });
 
+   request_handler->add_method_handler( "sleep", []( const json& j ) -> json
+   {
+      std::this_thread::sleep_for( std::chrono::seconds( j.get< uint32_t >() ) );
+      return json();
+   });
+
    // 100 ms timeout
    koinos::net::client c;
    c = koinos::net::jsonrpc::jsonrpc_client( 100 );
@@ -357,13 +363,13 @@ BOOST_AUTO_TEST_CASE( client_tests )
    try
    {
       c.call< uint32_t >( "sub", json{{"a", 1}, {"b", 2}} );
-      BOOST_REQUIRE(false);
+      BOOST_REQUIRE( false );
    } catch( koinos::exception& ) {}
 
    try
    {
       c.call< std::string >( "add", json{{"a", 1}, {"b", 2}} );
-      BOOST_REQUIRE(false);
+      BOOST_REQUIRE( false );
    } catch( std::exception& ) {}
 
    c.call_async< uint32_t >( "add", json{{"a", 1}, {"b", 2}} ).wait();
@@ -377,6 +383,27 @@ BOOST_AUTO_TEST_CASE( client_tests )
    BOOST_REQUIRE( !c.is_open() );
 
    c.connect( endpoint );
+   c.call< uint32_t >( "add", json{{"a", 1}, {"b", 2}} );
+
+   BOOST_TEST_MESSAGE( "Test connection timeout" );
+   for( uint32_t i = 0; i < 4; i++ )
+   {
+      try{
+         c.call< koinos::types::thunks::void_type >( "sleep", 1 );
+         BOOST_REQUIRE( false );
+      }
+      catch( std::exception& ) {}
+   }
+
+   auto future = c.call_async< koinos::types::thunks::void_type >( "sleep", 1 );
+
+   try
+   {
+      std::this_thread::sleep_for( std::chrono::milliseconds( 500 ) );
+      future.get();
+      BOOST_REQUIRE( false );
+   } catch( std::exception& ) {}
+
    c.call< uint32_t >( "add", json{{"a", 1}, {"b", 2}} );
 
 } KOINOS_CATCH_LOG_AND_RETHROW(info) }

@@ -5,6 +5,10 @@
 #include <boost/beast/http.hpp>
 
 #define LOCALHOST "127.0.0.1"
+#define TIMEOUT_THRESHOLD 5
+#define RECONNECT_SLEEP_MS_MIN uint32_t(100)
+#define RECONNECT_SLEEP_MS_MAX uint32_t(10000)
+
 
 namespace koinos::net {
 
@@ -89,8 +93,17 @@ std::shared_future< call_result > http_client::send_request( uint32_t id, const 
       if( status == std::future_status::timeout )
       {
          const std::lock_guard< std::mutex > lock( *_mutex );
-         _request_map[id].result_promise.set_value( koinos::exception( "Request timeout" ) );
-         _timeouts.push_back( id );
+         if( !_request_map[id].is_result_set )
+         {
+            _request_map[id].result_promise.set_value( koinos::exception( "Request timeout" ) );
+            _request_map[id].is_result_set = true;
+         }
+
+         _requests_to_remove.push_back( id );
+         _consecutive_timeouts++;
+
+         if( _consecutive_timeouts >= TIMEOUT_THRESHOLD )
+            _stream->close();
       }
    } );
 
@@ -102,6 +115,8 @@ std::shared_future< call_result > http_client::send_request( uint32_t id, const 
 
 void http_client::read_thread_main()
 {
+   uint32_t reconnect_sleep_ms = RECONNECT_SLEEP_MS_MIN;
+
    while( is_open() )
    { try {
       http::response< http::string_body > res;
@@ -119,12 +134,51 @@ void http_client::read_thread_main()
          _request_map.erase( req );
       }
 
-      while( _timeouts.size() )
+      while( _requests_to_remove.size() )
       {
-         _request_map.erase( _timeouts.front() );
-         _timeouts.pop_front();
+         _request_map.erase( _requests_to_remove.front() );
+         _requests_to_remove.pop_front();
       }
-   } catch( boost::exception& ) {} }
+   } catch( boost::exception& e )
+   {
+      if( !is_open() ) break;
+
+      // An error occurred, let's reconnect and cancel pending requests
+      LOG(warning) << "Connection error: " << boost::diagnostic_information( e );
+      LOG(warning) << "Attempting to reconnect http client...";
+
+      {
+         const std::lock_guard< std::mutex > lock( *_mutex );
+
+         for( auto& req : _request_map )
+         {
+            // There is a race condition between this thread and the timeout thread
+            // A lock solves concurrent access, but we cannot set the state again
+            if( !req.second.is_result_set )
+               req.second.result_promise.set_value( koinos::exception( "Connection error" ) );
+         }
+
+         _consecutive_timeouts = 0;
+      }
+
+      try
+      {
+         std::visit( koinos::overloaded{
+            [&]( auto&& e )
+            {
+               _stream->connect( e );
+            }},
+            _endpoint );
+         reconnect_sleep_ms = RECONNECT_SLEEP_MS_MIN;
+
+         LOG(warning) << "Success!";
+      } catch( boost::exception& )
+      {
+         LOG(warning) << "Failed. Sleeping for " << reconnect_sleep_ms << "ms";
+         std::this_thread::sleep_for( std::chrono::milliseconds( reconnect_sleep_ms ) );
+         reconnect_sleep_ms = std::min( reconnect_sleep_ms << 2, RECONNECT_SLEEP_MS_MAX );
+      }
+   } }
 }
 
 } // koinos::net
