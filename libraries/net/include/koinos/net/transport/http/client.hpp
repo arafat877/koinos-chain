@@ -47,7 +47,7 @@ using parse_response_callback_t =
    std::function< uint32_t(const std::string&, call_result&) >;
 
 /**
- * http_client is designed to manage sending http GET requests asynchronously.
+ * client is designed to manage sending http GET requests asynchronously.
  *
  * New requests are made asynchronously and added to the request map.
  * When responses are handled, their ID is looked up via the request map
@@ -59,7 +59,7 @@ using parse_response_callback_t =
  * If enough requests time out, a new connection will be established
  * and all outstanding requests will be cancelled.
  */
-class http_client
+class client
 {
    private:
       struct request_item
@@ -100,14 +100,14 @@ class http_client
       void read_thread_main();
 
    public:
-      http_client( parse_response_callback_t cb, const std::string& http_content_type, uint32_t timeout = DEFAULT_REQUEST_TIMEOUT_MS );
-      http_client( const http_client& ) = delete;
-      http_client( http_client&& ) = default;
+      client( parse_response_callback_t cb, const std::string& http_content_type, uint32_t timeout = DEFAULT_REQUEST_TIMEOUT_MS );
+      client( const client& ) = delete;
+      client( client&& ) = default;
 
-      ~http_client();
+      ~client();
 
-      http_client& operator=( const http_client& ) = delete;
-      http_client& operator=( http_client&& ) = default;
+      client& operator=( const client& ) = delete;
+      client& operator=( client&& ) = default;
 
       template< typename Endpoint >
       void connect( const Endpoint& endpoint )

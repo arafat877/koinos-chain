@@ -1,4 +1,4 @@
-#include <koinos/net/transport/http/http_client.hpp>
+#include <koinos/net/transport/http/client.hpp>
 
 #include <koinos/util.hpp>
 
@@ -15,7 +15,7 @@ namespace http = beast::http;
 
 constexpr const char* localhost = "127.0.0.1";
 
-http_client::http_client( parse_response_callback_t cb, const std::string& http_content_type, uint32_t timeout ) :
+client::client( parse_response_callback_t cb, const std::string& http_content_type, uint32_t timeout ) :
    _mutex( std::make_unique< std::mutex >() ),
    _ioc( std::make_unique< net::io_context >() ),
    _stream( std::make_unique< beast::basic_stream< stream_protocol > >( *_ioc ) ),
@@ -24,13 +24,13 @@ http_client::http_client( parse_response_callback_t cb, const std::string& http_
    _timeout( timeout )
 {}
 
-http_client::~http_client()
+client::~client()
 {
    if( _ioc )
       close();
 }
 
-void http_client::connect()
+void client::connect()
 {
    std::visit( koinos::overloaded{
       [&]( auto&& e )
@@ -43,12 +43,12 @@ void http_client::connect()
    _read_thread = std::make_unique< std::thread >( [this](){ read_thread_main(); } );
 }
 
-bool http_client::is_open() const
+bool client::is_open() const
 {
    return _is_open;
 }
 
-void http_client::close()
+void client::close()
 {
    if( !is_open() ) return;
    _is_open = false;
@@ -57,7 +57,7 @@ void http_client::close()
    _read_thread.reset();
 }
 
-std::shared_future< call_result > http_client::send_request( uint32_t id, const std::string& bytes )
+std::shared_future< call_result > client::send_request( uint32_t id, const std::string& bytes )
 {
    if (_request_map.find(id) != _request_map.end())
    {
@@ -114,7 +114,7 @@ std::shared_future< call_result > http_client::send_request( uint32_t id, const 
    return fut;
 }
 
-void http_client::read_thread_main()
+void client::read_thread_main()
 {
    uint32_t reconnect_sleep_ms = RECONNECT_SLEEP_MS_MIN;
 

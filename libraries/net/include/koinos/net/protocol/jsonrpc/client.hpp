@@ -5,7 +5,7 @@
 #include <future>
 
 #include <koinos/net/protocol/jsonrpc/fields.hpp>
-#include <koinos/net/transport/http/http_client.hpp>
+#include <koinos/net/transport/http/client.hpp>
 #include <koinos/pack/rt/json.hpp>
 #include <koinos/util.hpp>
 
@@ -13,9 +13,9 @@ namespace koinos::net::protocol::jsonrpc {
 
 typedef std::variant<std::any, koinos::exception> call_result;
 
-class jsonrpc_client {
+class client {
    private:
-      transport::http::http_client                 _client;
+      transport::http::client                      _client;
       std::unique_ptr< std::atomic< uint32_t > >   _next_id = 0;
 
       template< typename Params >
@@ -46,13 +46,13 @@ class jsonrpc_client {
       }
 
    public:
-      jsonrpc_client();
-      jsonrpc_client( uint32_t timeout );
-      jsonrpc_client( const jsonrpc_client& ) = delete;
-      jsonrpc_client( jsonrpc_client&& ) = default;
+      client();
+      client( uint32_t timeout );
+      client( const client& ) = delete;
+      client( client&& ) = default;
 
-      jsonrpc_client& operator=( const jsonrpc_client& ) = delete;
-      jsonrpc_client& operator=( jsonrpc_client&& ) = default;
+      client& operator=( const client& ) = delete;
+      client& operator=( client&& ) = default;
 
       template< typename Endpoint >
       void connect( const Endpoint& e )

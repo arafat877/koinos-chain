@@ -65,22 +65,22 @@ uint32_t parse_response( const std::string& msg, call_result& result )
    return id;
 }
 
-jsonrpc_client::jsonrpc_client() :
+client::client() :
    _client( parse_response, json_content_type ),
    _next_id( std::make_unique< std::atomic< uint32_t > >() )
 {}
 
-jsonrpc_client::jsonrpc_client( uint32_t timeout ) :
+client::client( uint32_t timeout ) :
    _client( parse_response, json_content_type, timeout ),
    _next_id( std::make_unique< std::atomic< uint32_t > >() )
 {}
 
-bool jsonrpc_client::is_open() const
+bool client::is_open() const
 {
    return _client.is_open();
 }
 
-void jsonrpc_client::close()
+void client::close()
 {
    _client.close();
 }
