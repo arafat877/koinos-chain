@@ -10,7 +10,9 @@
 #include <koinos/net/transport/http/router.hpp>
 #include <koinos/net/transport/http/server.hpp>
 
-struct net_fixture
+#include <koinos/tests/base_fixture.hpp>
+
+struct net_fixture : base_fixture
 {
    boost::asio::io_context ioc;
    boost::filesystem::path unix_socket;

@@ -2,7 +2,7 @@
 #include <koinos/crypto/multihash.hpp>
 #include <koinos/pack/rt/json.hpp>
 
-#include <iostream>
+#include <koinos/tests/base_fixture.hpp>
 
 using namespace koinos::crypto;
 using nlohmann::json;
@@ -21,7 +21,7 @@ static void init_5()
    TEST5[1000000] = 0;
 }
 
-struct crypto_fixture
+struct crypto_fixture : base_fixture
 {
    crypto_fixture()
    {
