@@ -12,4 +12,9 @@ struct base_fixture
       boost::filesystem::create_directory( temp );
       koinos::initialize_logging( temp, "koinos_tests_%3N.log" );
    }
+
+   ~base_fixture()
+   {
+      boost::log::core::get()->remove_all_sinks();
+   }
 };

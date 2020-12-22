@@ -22,8 +22,8 @@ BOOST_AUTO_TEST_CASE( log_color_tests )
    std::vector< std::string > logtypes {
 #ifndef NDEBUG
        "<\033[32mtrace\033[0m>",
-       "<\033[32mdebug\033[0m>", 
-#endif            
+       "<\033[32mdebug\033[0m>",
+#endif
        "<\033[32minfo\033[0m>",
        "<\033[33mwarning\033[0m>",
        "<\033[31merror\033[0m>",
