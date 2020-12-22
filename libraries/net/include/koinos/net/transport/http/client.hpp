@@ -20,9 +20,13 @@
 
 namespace koinos::net::transport::http {
 
-namespace beast = boost::beast;
-namespace net = boost::asio;
-using tcp = net::ip::tcp;
+namespace
+{
+   namespace beast = boost::beast;
+   namespace net = boost::asio;
+   namespace tcp = net::ip::tcp;
+}
+
 using stream_protocol = net::generic::stream_protocol;
 
 KOINOS_DECLARE_EXCEPTION( http_exception );
