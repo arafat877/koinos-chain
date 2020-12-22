@@ -1,16 +1,28 @@
 #include <koinos/plugins/chain/chain_plugin.hpp>
 #include <koinos/plugins/chain/reqhandler.hpp>
+#include <koinos/plugins/chain/server.hpp>
+
+#include <koinos/pack/rt/binary.hpp>
+#include <koinos/pack/rt/json.hpp>
 
 #include <koinos/log.hpp>
 #include <koinos/util.hpp>
 
 #include <mira/database_configuration.hpp>
 
+#include <nlohmann/json.hpp>
+
+#include <memory>
+
+#define MAX_JSON_DEPTH 30
+
 namespace koinos::plugins::chain {
 
 using namespace appbase;
 
 namespace detail {
+
+using json = nlohmann::json;
 
 class chain_plugin_impl
 {
@@ -19,11 +31,15 @@ class chain_plugin_impl
       ~chain_plugin_impl() {}
 
       void write_default_database_config( bfs::path &p );
+      void start_server();
+      void stop_server();
 
       bfs::path            state_dir;
       bfs::path            database_cfg;
 
       reqhandler           _reqhandler;
+      std::string          _listen_addr;
+      std::unique_ptr< jsonrpc_server >  _server;
 };
 
 void chain_plugin_impl::write_default_database_config( bfs::path &p )
@@ -31,6 +47,26 @@ void chain_plugin_impl::write_default_database_config( bfs::path &p )
    LOG(info) << "writing database configuration: " << p.string();
    boost::filesystem::ofstream config_file( p, std::ios::binary );
    config_file << mira::utilities::default_database_configuration();
+}
+
+void chain_plugin_impl::start_server()
+{
+   _server = std::make_unique< jsonrpc_server >( _listen_addr );
+   _server->add_method_handler( "call", [&]( const json::object_t& j ) -> json
+   {
+      koinos::types::rpc::submission_item item;
+      koinos::pack::from_json( j, item, 0 );
+      std::future< std::shared_ptr< types::rpc::submission_result > > fut = _reqhandler.submit( item );
+      std::shared_ptr< types::rpc::submission_result > result = fut.get();
+      json j_result;
+      koinos::pack::to_json( j_result, *result );
+      return j_result;
+   } );
+}
+
+void chain_plugin_impl::stop_server()
+{
+   _server.reset();
 }
 
 } // detail
@@ -50,6 +86,7 @@ void chain_plugin::set_program_options( options_description& cli, options_descri
          ("state-dir", bpo::value<bfs::path>()->default_value("blockchain"),
             "the location of the blockchain state files (absolute path or relative to application data dir)")
          ("database-config", bpo::value<bfs::path>()->default_value("database.cfg"), "The database configuration file location")
+         ("listen", bpo::value<std::string>()->default_value("koinosd.sock"), "Address to listen")
          ;
    cli.add_options()
          ("force-open", bpo::bool_switch()->default_value(false), "force open the database, skipping the environment check")
@@ -78,6 +115,16 @@ void chain_plugin::plugin_initialize( const variables_map& options )
    {
       my->write_default_database_config( my->database_cfg );
    }
+
+   // TODO parse HTTP as well as UNIX socket
+   std::string unix_socket = options.at("listen").as< std::string >();
+   bfs::path unix_socket_path = unix_socket;
+   if( unix_socket_path.is_relative() )
+   {
+      unix_socket_path = app().data_dir() / unix_socket_path;
+   }
+   my->_listen_addr = unix_socket_path.string();
+   LOG(info) << "Listening on UNIX socket " << my->_listen_addr;
 }
 
 void chain_plugin::plugin_startup()
@@ -109,10 +156,13 @@ void chain_plugin::plugin_startup()
    }
 
    my->_reqhandler.start_threads();
+   my->start_server();
 }
 
 void chain_plugin::plugin_shutdown()
 {
+   LOG(info) << "stop jsonrpc server";
+   my->stop_server();
    LOG(info) << "closing chain database";
    KOINOS_TODO( "We eventually need to call close() from somewhere" )
    //my->db.close();
