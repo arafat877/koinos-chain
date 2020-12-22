@@ -9,6 +9,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <koinos/exception.hpp>
 #include <koinos/net/protocol/jsonrpc/fields.hpp>
 #include <koinos/util.hpp>
 
@@ -27,26 +28,78 @@ enum class error_code : int32_t
    server_error_lower = -32099
 };
 
-struct exception : virtual std::exception
+struct exception : koinos::exception
 {
-   const std::string msg;
    const jsonrpc::id_type id;
    const jsonrpc::error_code code;
    const std::optional< std::string > data;
 
-   exception( jsonrpc::error_code c, const std::string& m, std::optional< std::string > d = {}, jsonrpc::id_type i = nullptr ) :
+   exception( const std::string& m = "", jsonrpc::error_code c = error_code(0), std::optional< std::string > d = {}, jsonrpc::id_type i = nullptr ) :
+      koinos::exception( m ),
       code( c ),
-      msg( m ),
       data( d ),
       id( i )
    {}
 
    virtual ~exception() {}
+};
 
-   virtual const char* what() const noexcept override
-   {
-      return msg.c_str();
-   }
+struct parse_error : virtual exception
+{
+   parse_error( const std::string& m, std::optional< std::string > d = {}, jsonrpc::id_type i = nullptr ) :
+      exception( m, error_code::parse_error, d, i )
+   {}
+
+   virtual ~parse_error() {}
+};
+
+struct invalid_request : virtual exception
+{
+   invalid_request( const std::string& m, std::optional< std::string > d = {}, jsonrpc::id_type i = nullptr ) :
+      exception( m, error_code::invalid_request, d, i )
+   {}
+
+   virtual ~invalid_request() {}
+};
+
+struct method_not_found : virtual exception
+{
+   method_not_found( const std::string& m, std::optional< std::string > d = {}, jsonrpc::id_type i = nullptr ) :
+      exception( m, error_code::method_not_found, d, i )
+   {}
+
+   virtual ~method_not_found() {}
+};
+
+struct invalid_params : virtual exception
+{
+   invalid_params( const std::string& m, std::optional< std::string > d = {}, jsonrpc::id_type i = nullptr ) :
+      exception( m, error_code::invalid_params, d, i )
+   {}
+
+   virtual ~invalid_params() {}
+};
+
+struct internal_error : virtual exception
+{
+   internal_error( const std::string& m, std::optional< std::string > d = {}, jsonrpc::id_type i = nullptr ) :
+      exception( m, error_code::internal_error, d, i )
+   {}
+
+   virtual ~internal_error() {}
+};
+
+struct server_error : virtual exception
+{
+   server_error( const std::string& m, std::optional< std::string > d = {}, jsonrpc::id_type i = nullptr ) :
+      exception( m, error_code::server_error, d, i )
+   {}
+
+   server_error( const std::string& m, jsonrpc::error_code c, std::optional< std::string > d = {}, jsonrpc::id_type i = nullptr ) :
+      exception( m, c, d, i )
+   {}
+
+   virtual ~server_error() {}
 };
 
 } // koinos::net::protocol::jsonrpc
@@ -71,7 +124,7 @@ template <> struct adl_serializer< koinos::net::protocol::jsonrpc::id_type >
       if ( j.is_number() )
       {
          if ( j.get< double >() != j.get< uint64_t >() )
-            throw jsonrpc::exception( jsonrpc::error_code::invalid_request, "id cannot be fractional" );
+            throw jsonrpc::invalid_request( "id cannot be fractional" );
          id = j.get< uint64_t >();
       }
       else if ( j.is_string() )
@@ -84,7 +137,7 @@ template <> struct adl_serializer< koinos::net::protocol::jsonrpc::id_type >
       }
       else
       {
-         throw jsonrpc::exception( jsonrpc::error_code::invalid_request, "id must be a non-fractional number, string or null" );
+         throw jsonrpc::invalid_request( "id must be a non-fractional number, string or null" );
       }
    }
 };
@@ -105,7 +158,7 @@ struct request
    void validate()
    {
       if ( jsonrpc != "2.0" )
-         throw jsonrpc::exception( jsonrpc::error_code::invalid_request, "an invalid jsonrpc version was provided", {}, id );
+         throw jsonrpc::invalid_request( "an invalid jsonrpc version was provided", {}, id );
    }
 };
 

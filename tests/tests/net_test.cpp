@@ -87,7 +87,7 @@ BOOST_AUTO_TEST_CASE( jsonrpc_server_tests )
    request_handler->add_method_handler( "add", []( const json::object_t& j ) -> json
    {
       if ( !j.count( "a" ) || !j.count( "b" ) || !j.at( "a" ).is_number() || !j.at( "b" ).is_number() )
-         throw jsonrpc::exception( jsonrpc::error_code::invalid_params, "invalid params", "\"a\" and \"b\" must exist as numbers" );
+         throw jsonrpc::invalid_params( "invalid params", "\"a\" and \"b\" must exist as numbers" );
 
       json result = j.at( "a" ).get< uint64_t >() + j.at( "b" ).get< uint64_t >();
       return result;
@@ -96,7 +96,7 @@ BOOST_AUTO_TEST_CASE( jsonrpc_server_tests )
    request_handler->add_method_handler( "sub", []( const json::object_t& j ) -> json
    {
       if ( !j.count( "a" ) || !j.count( "b" ) || !j.at( "a" ).is_number() || !j.at( "b" ).is_number() )
-         throw jsonrpc::exception( jsonrpc::error_code::invalid_params, "invalid params", "\"a\" and \"b\" must exist as numbers" );
+         throw jsonrpc::invalid_params( "invalid params", "\"a\" and \"b\" must exist as numbers" );
 
       json result = j.at( "a" ).get< uint64_t >() - j.at( "b" ).get< uint64_t >();
       return result;
@@ -105,7 +105,7 @@ BOOST_AUTO_TEST_CASE( jsonrpc_server_tests )
    request_handler->add_method_handler( "mul", []( const json::object_t& j ) -> json
    {
       if ( !j.count( "a" ) || !j.count( "b" ) || !j.at( "a" ).is_number() || !j.at( "b" ).is_number() )
-         throw jsonrpc::exception( jsonrpc::error_code::invalid_params, "invalid params", "\"a\" and \"b\" must exist as numbers" );
+         throw jsonrpc::invalid_params( "invalid params", "\"a\" and \"b\" must exist as numbers" );
 
       json result = j.at( "a" ).get< uint64_t >() * j.at( "b" ).get< uint64_t >();
       return result;
@@ -114,7 +114,7 @@ BOOST_AUTO_TEST_CASE( jsonrpc_server_tests )
    request_handler->add_method_handler( "div", []( const json::object_t& j ) -> json
    {
       if ( !j.count( "a" ) || !j.count( "b" ) || !j.at( "a" ).is_number() || !j.at( "b" ).is_number() )
-         throw jsonrpc::exception( jsonrpc::error_code::invalid_params, "invalid params", "\"a\" and \"b\" must exist as numbers" );
+         throw jsonrpc::invalid_params( "invalid params", "\"a\" and \"b\" must exist as numbers" );
 
       if ( j.at( "b" ).get< uint64_t >() == 0 )
          throw std::runtime_error( "cannot divide by zero" );
@@ -227,7 +227,7 @@ BOOST_AUTO_TEST_CASE( jsonrpc_server_tests )
    BOOST_REQUIRE_EQUAL( std::get< uint64_t >( res.id ), 5 );
    BOOST_REQUIRE( !res.result.has_value() );
    BOOST_REQUIRE( res.error->code == jsonrpc::error_code::method_not_found );
-   BOOST_REQUIRE( res.error->message == "method not found: unknown" );
+   BOOST_REQUIRE_EQUAL( res.error->message, "method not found: unknown" );
    BOOST_REQUIRE( !res.error->data.has_value() );
 
    BOOST_TEST_MESSAGE( "sending request that an invalid json rpc version" );
@@ -249,7 +249,7 @@ BOOST_AUTO_TEST_CASE( jsonrpc_server_tests )
    BOOST_REQUIRE_EQUAL( std::get< uint64_t >( res.id ), 6 );
    BOOST_REQUIRE( !res.result.has_value() );
    BOOST_REQUIRE( res.error->code == jsonrpc::error_code::invalid_request );
-   BOOST_REQUIRE( res.error->message == "an invalid jsonrpc version was provided" );
+   BOOST_REQUIRE_EQUAL( res.error->message, "an invalid jsonrpc version was provided" );
    BOOST_REQUIRE( !res.error->data.has_value() );
 
    BOOST_TEST_MESSAGE( "sending request that has a fractional id" );
@@ -263,7 +263,7 @@ BOOST_AUTO_TEST_CASE( jsonrpc_server_tests )
    BOOST_REQUIRE( std::get< std::nullptr_t >( res.id ) == nullptr );
    BOOST_REQUIRE( !res.result.has_value() );
    BOOST_REQUIRE( res.error->code == jsonrpc::error_code::invalid_request );
-   BOOST_REQUIRE( res.error->message == "id cannot be fractional" );
+   BOOST_REQUIRE_EQUAL( res.error->message, "id cannot be fractional" );
    BOOST_REQUIRE( !res.error->data.has_value() );
 
    BOOST_TEST_MESSAGE( "sending request that has invalid id type" );
@@ -291,7 +291,7 @@ BOOST_AUTO_TEST_CASE( jsonrpc_server_tests )
    BOOST_REQUIRE( std::get< uint64_t >( res.id ) == 189 );
    BOOST_REQUIRE( !res.result.has_value() );
    BOOST_REQUIRE( res.error->code == jsonrpc::error_code::invalid_params );
-   BOOST_REQUIRE( res.error->message == "invalid params" );
+   BOOST_REQUIRE_EQUAL( res.error->message, "invalid params" );
    BOOST_REQUIRE( res.error->data.value() == "\"a\" and \"b\" must exist as numbers"  );
 
    BOOST_TEST_MESSAGE( "sending request that throws a server error" );
@@ -313,7 +313,7 @@ BOOST_AUTO_TEST_CASE( jsonrpc_server_tests )
    BOOST_REQUIRE( std::get< uint64_t >( res.id ) == 65 );
    BOOST_REQUIRE( !res.result.has_value() );
    BOOST_REQUIRE( res.error->code == jsonrpc::error_code::server_error );
-   BOOST_REQUIRE( res.error->message == "a server error has occurred" );
+   BOOST_REQUIRE_EQUAL( res.error->message, "a server error has occurred" );
    BOOST_REQUIRE( res.error->data.value() == "cannot divide by zero" );
 
    BOOST_TEST_MESSAGE( "sending request that has a malformed json request" );
@@ -327,7 +327,7 @@ BOOST_AUTO_TEST_CASE( jsonrpc_server_tests )
    BOOST_REQUIRE( std::get< std::nullptr_t >( res.id ) == nullptr );
    BOOST_REQUIRE( !res.result.has_value() );
    BOOST_REQUIRE( res.error->code == jsonrpc::error_code::parse_error );
-   BOOST_REQUIRE( res.error->message == "unable to parse request" );
+   BOOST_REQUIRE_EQUAL( res.error->message, "unable to parse request" );
    BOOST_REQUIRE( res.error->data.has_value() );
 
 } KOINOS_CATCH_LOG_AND_RETHROW(info) }

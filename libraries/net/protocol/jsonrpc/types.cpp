@@ -60,7 +60,7 @@ void to_json( json& j, const response& r )
    }
    else
    {
-      throw jsonrpc::exception( jsonrpc::error_code::parse_error, "failed to jsonify due to an invalid response object" );
+      throw jsonrpc::parse_error( "failed to jsonify due to an invalid response object" );
    }
 }
 
@@ -81,7 +81,7 @@ void from_json( const json& j, response& r )
    }
    else
    {
-      throw jsonrpc::exception( jsonrpc::error_code::parse_error, "failed to dejsonify due to an invalid response object" );
+      throw jsonrpc::parse_error( "failed to dejsonify due to an invalid response object" );
    }
 }
 
