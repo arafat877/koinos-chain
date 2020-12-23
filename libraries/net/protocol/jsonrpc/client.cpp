@@ -1,4 +1,5 @@
 #include <koinos/net/protocol/jsonrpc/client.hpp>
+#include <koinos/net/protocol/jsonrpc/exceptions.hpp>
 #include <koinos/net/protocol/jsonrpc/types.hpp>
 
 namespace koinos::net::protocol::jsonrpc {
@@ -12,9 +13,9 @@ uint32_t parse_response( const std::string& msg, call_result& result )
    {
       auto response = nlohmann::json::parse( msg );
       if( response.find( field::id ) == response.end() )
-         KOINOS_THROW( exception, "Field 'id' missing from response" );
+         KOINOS_THROW( jsonrpc_exception, "Field 'id' missing from response" );
       if( response.find( field::jsonrpc ) == response.end() )
-         KOINOS_THROW( exception, "Field 'jsonrpc' missing from response" );
+         KOINOS_THROW( jsonrpc_exception, "Field 'jsonrpc' missing from response" );
       id = response[field::id].get< uint32_t >();
 
       if( response.find( field::error ) != response.end() )
@@ -22,7 +23,7 @@ uint32_t parse_response( const std::string& msg, call_result& result )
          const auto& error = response[field::error];
 
          if( error.find( field::code ) == error.end() )
-            KOINOS_THROW( exception, "Error field 'code' missing from response" );
+            KOINOS_THROW( jsonrpc_exception, "Error field 'code' missing from response" );
 
          std::string message = error.find( field::message ) != error.end() ? error[field::message].get< std::string >() : "jsonrpc error";
          error_code code = error[field::code].get< error_code >();

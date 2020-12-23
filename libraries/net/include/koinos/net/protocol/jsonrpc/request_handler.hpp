@@ -36,8 +36,7 @@ public:
       }
       catch ( const std::exception& e )
       {
-         LOG(info) << e.what();
-         throw jsonrpc::parse_error( "unable to parse request", e.what(), nullptr );
+         throw jsonrpc::exception( jsonrpc::error_code::parse_error, "unable to parse request", e.what(), nullptr );
       }
 
       return req;
@@ -58,11 +57,11 @@ public:
       }
       catch ( const jsonrpc::exception& e )
       {
-         throw jsonrpc::exception( e.what(), e.code, e.data, id );
+         throw jsonrpc::exception( e.code, e.what(), e.data, id );
       }
       catch ( const std::exception& e )
       {
-         throw jsonrpc::server_error( "a server error has occurred", e.what(), id );
+         throw jsonrpc::exception( jsonrpc::error_code::server_error, "a server error has occurred", e.what(), id );
       }
 
       return resp;
@@ -82,11 +81,11 @@ public:
          auto h = get_method_handler( req.method );
 
          if ( !h.has_value() )
-            throw jsonrpc::method_not_found( "method not found: " + req.method, {}, req.id );
+            throw jsonrpc::exception( jsonrpc::error_code::method_not_found, "method not found: " + req.method, {}, req.id );
 
          resp = call_handler( req.id, h.value(), req.params );
       }
-      catch ( const jsonrpc::exception& e )
+      catch ( const jsonrpc::exception e )
       {
          resp = jsonrpc::response {
             .jsonrpc = "2.0",
