@@ -22,6 +22,7 @@ public:
 
    jsonrpc::request parse_request( const std::string& payload ) const
    {
+      LOG(info) << payload;
       jsonrpc::request req;
 
       try
@@ -30,10 +31,12 @@ public:
       }
       catch( const jsonrpc::exception& e )
       {
+         LOG(info) << e.what();
          throw;
       }
       catch ( const std::exception& e )
       {
+         LOG(info) << e.what();
          throw jsonrpc::parse_error( "unable to parse request", e.what(), nullptr );
       }
 
@@ -68,11 +71,13 @@ public:
    std::string handle( const std::string& payload ) override
    {
       jsonrpc::response resp;
+      id_type id = nullptr;
 
       try
       {
          jsonrpc::request req = parse_request( payload );
          req.validate();
+         id = req.id;
 
          auto h = get_method_handler( req.method );
 
@@ -85,7 +90,7 @@ public:
       {
          resp = jsonrpc::response {
             .jsonrpc = "2.0",
-            .id = e.id,
+            .id = id,
             .error = jsonrpc::error_type {
                .code = e.code,
                .message = e.what(),
@@ -97,7 +102,7 @@ public:
       {
          resp = jsonrpc::response {
             .jsonrpc = "2.0",
-            .id = nullptr,
+            .id = id,
             .error = jsonrpc::error_type {
                .code = jsonrpc::error_code::internal_error,
                .message = "an internal error has ocurred",

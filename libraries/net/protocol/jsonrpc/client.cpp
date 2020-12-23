@@ -42,6 +42,7 @@ uint32_t parse_response( const std::string& msg, call_result& result )
             default:
                if( code >= error_code::server_error_lower && code <= error_code::server_error )
                   KOINOS_THROW( server_error, message );
+               throw exception( message );
          }
       }
 
