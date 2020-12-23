@@ -38,8 +38,9 @@ class chain_plugin_impl
       bfs::path            database_cfg;
 
       reqhandler           _reqhandler;
+      endpoint_factory     _endpoint_factory;
       std::string          _listen_addr;
-      std::unique_ptr< jsonrpc_server >  _server;
+      std::unique_ptr< abstract_jsonrpc_server >  _server;
 };
 
 void chain_plugin_impl::write_default_database_config( bfs::path &p )
@@ -51,10 +52,13 @@ void chain_plugin_impl::write_default_database_config( bfs::path &p )
 
 void chain_plugin_impl::start_server()
 {
-   _server = std::make_unique< jsonrpc_server >( _listen_addr );
+   generic_endpoint ep = _endpoint_factory.create_endpoint( _listen_addr );
+   _server = create_server( ep );
    _server->add_method_handler( "call", [&]( const json::object_t& j ) -> json
    {
+      LOG(info) << "Got json value:" << json(j).dump();
       koinos::types::rpc::submission_item item;
+      json j_params = j;
       koinos::pack::from_json( j, item, 0 );
       std::future< std::shared_ptr< types::rpc::submission_result > > fut = _reqhandler.submit( item );
       std::shared_ptr< types::rpc::submission_result > result = fut.get();
@@ -86,7 +90,7 @@ void chain_plugin::set_program_options( options_description& cli, options_descri
          ("state-dir", bpo::value<bfs::path>()->default_value("blockchain"),
             "the location of the blockchain state files (absolute path or relative to application data dir)")
          ("database-config", bpo::value<bfs::path>()->default_value("database.cfg"), "The database configuration file location")
-         ("listen", bpo::value<std::string>()->default_value("koinosd.sock"), "Address to listen")
+         ("listen", bpo::value<std::string>()->default_value("/unix/koinosd.sock"), "Multiaddress to listen")
          ;
    cli.add_options()
          ("force-open", bpo::bool_switch()->default_value(false), "force open the database, skipping the environment check")
@@ -116,15 +120,11 @@ void chain_plugin::plugin_initialize( const variables_map& options )
       my->write_default_database_config( my->database_cfg );
    }
 
-   // TODO parse HTTP as well as UNIX socket
-   std::string unix_socket = options.at("listen").as< std::string >();
-   bfs::path unix_socket_path = unix_socket;
-   if( unix_socket_path.is_relative() )
-   {
-      unix_socket_path = app().data_dir() / unix_socket_path;
-   }
-   my->_listen_addr = unix_socket_path.string();
-   LOG(info) << "Listening on UNIX socket " << my->_listen_addr;
+   my->_endpoint_factory.set_unix_socket_base_path( app().data_dir() );
+   my->_endpoint_factory.set_default_port( 9400 );
+
+   my->_listen_addr = options.at("listen").as< std::string >();
+   LOG(info) << "Listening on " << my->_listen_addr;
 }
 
 void chain_plugin::plugin_startup()

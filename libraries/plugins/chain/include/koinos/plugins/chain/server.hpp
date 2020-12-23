@@ -1,67 +1,44 @@
 #pragma once
 
-#include <thread>
 #include <memory>
 
-#include <boost/asio.hpp>
-#include <boost/filesystem.hpp>
+#include <koinos/exception.hpp>
 
-#include <koinos/net/protocol/jsonrpc/request_handler.hpp>
-#include <koinos/net/protocol/jsonrpc/types.hpp>
-#include <koinos/net/transport/http/router.hpp>
-#include <koinos/net/transport/http/server.hpp>
+#include <nlohmann/json.hpp>
 
 namespace koinos::plugins::chain {
 
-struct jsonrpc_server
+KOINOS_DECLARE_EXCEPTION( chain_plugin_exception );
+
+KOINOS_DECLARE_DERIVED_EXCEPTION( malformed_network_address, chain_plugin_exception );
+
+class abstract_jsonrpc_server
 {
-   boost::asio::io_context _ioc;
+   public:
+      using json = nlohmann::json;
+      using method_handler = std::function< json( const json::object_t& ) >;
 
-   std::shared_ptr< koinos::net::transport::http::router > _http_router;
-
-   std::unique_ptr< boost::asio::local::stream_protocol::socket > _socket;
-   std::unique_ptr< std::thread > _thread;
-
-   std::string _listen_addr;
-
-   std::shared_ptr< koinos::net::protocol::jsonrpc::request_handler > _jsonrpc_request_handler;
-
-   jsonrpc_server( const std::string& listen_addr )
-      : _listen_addr( listen_addr )
-   {
-      _http_router = std::make_shared< koinos::net::transport::http::router >();
-
-      // For now, listen_addr is always a UNIX socket
-      std::string unix_socket_path = listen_addr;
-
-      boost::asio::local::stream_protocol::endpoint endpoint( unix_socket_path );
-
-      // Create and launch a listening port
-      std::make_shared< koinos::net::transport::http::server >(
-         _ioc,
-         endpoint,
-         _http_router
-      )->run();
-
-      _thread = std::make_unique< std::thread >( [&]{ _ioc.run(); } );
-
-      _socket = std::make_unique< boost::asio::local::stream_protocol::socket >( _ioc, endpoint.protocol() );
-      _socket->connect( unix_socket_path );
-
-      _jsonrpc_request_handler = std::make_shared< koinos::net::protocol::jsonrpc::request_handler >();
-      _http_router->handlers[ "application/json" ] = _jsonrpc_request_handler;
-   }
-
-   ~jsonrpc_server()
-   {
-      _ioc.stop();
-      _thread->join();
-   }
-
-   void add_method_handler( const std::string& method_name, koinos::net::protocol::jsonrpc::method_handler handler )
-   {
-      _jsonrpc_request_handler->add_method_handler( method_name, handler );
-   }
+      abstract_jsonrpc_server();
+      virtual ~abstract_jsonrpc_server();
+      virtual void add_method_handler( const std::string& method_name, method_handler handler ) = 0;
 };
+
+using generic_endpoint = boost::asio::generic::stream_protocol::endpoint;
+
+class endpoint_factory
+{
+   public:
+      endpoint_factory();
+      void set_unix_socket_base_path( boost::filesystem::path p );
+      void set_default_port( uint16_t default_port );
+
+      generic_endpoint create_endpoint( const std::string& address );
+
+   private:
+      boost::filesystem::path _unix_socket_base_path;
+      uint16_t _default_port = 8000;
+};
+
+std::unique_ptr< abstract_jsonrpc_server > create_server( generic_endpoint endpoint );
 
 } // koinos::plugins::chain
