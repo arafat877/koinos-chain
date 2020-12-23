@@ -1,8 +1,10 @@
 #include <koinos/net/transport/http/client.hpp>
 
+#include <koinos/log.hpp>
 #include <koinos/util.hpp>
 
 #include <boost/beast/http.hpp>
+#include <boost/exception/diagnostic_information.hpp>
 
 #define TIMEOUT_THRESHOLD 5
 #define RECONNECT_SLEEP_MS_MIN uint32_t(100)
@@ -61,7 +63,7 @@ std::shared_future< call_result > client::send_request( uint32_t id, const std::
 {
    if (_request_map.find(id) != _request_map.end())
    {
-      KOINOS_THROW( http_exception, "Request ID conflict" );
+      throw exception( "Request ID conflict" );
    }
 
    http::request< http::string_body > req { http::verb::get, "/", 11 };
@@ -96,7 +98,7 @@ std::shared_future< call_result > client::send_request( uint32_t id, const std::
          const std::lock_guard< std::mutex > lock( *_mutex );
          if( !_request_map[id].is_result_set )
          {
-            _request_map[id].result_promise.set_value( koinos::exception( "Request timeout" ) );
+            _request_map[id].result_promise.set_value( koinos::net::exception( "Request timeout" ) );
             _request_map[id].is_result_set = true;
          }
 
@@ -156,7 +158,7 @@ void client::read_thread_main()
             // There is a race condition between this thread and the timeout thread
             // A lock solves concurrent access, but we cannot set the state again
             if( !req.second.is_result_set )
-               req.second.result_promise.set_value( koinos::exception( "Connection error" ) );
+               req.second.result_promise.set_value( koinos::net::exception( "Connection error" ) );
          }
 
          _consecutive_timeouts = 0;

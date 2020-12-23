@@ -9,6 +9,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <koinos/net/types.hpp>
 #include <koinos/net/protocol/jsonrpc/fields.hpp>
 #include <koinos/util.hpp>
 
@@ -27,26 +28,20 @@ enum class error_code : int32_t
    server_error_lower = -32099
 };
 
-struct exception : virtual std::exception
+struct exception : virtual koinos::net::exception
 {
-   const std::string msg;
    const jsonrpc::id_type id;
    const jsonrpc::error_code code;
    const std::optional< std::string > data;
 
    exception( jsonrpc::error_code c, const std::string& m, std::optional< std::string > d = {}, jsonrpc::id_type i = nullptr ) :
+      koinos::net::exception( m ),
       code( c ),
-      msg( m ),
       data( d ),
       id( i )
    {}
 
    virtual ~exception() {}
-
-   virtual const char* what() const noexcept override
-   {
-      return msg.c_str();
-   }
 };
 
 } // koinos::net::protocol::jsonrpc

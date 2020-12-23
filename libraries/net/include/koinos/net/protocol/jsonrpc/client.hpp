@@ -4,6 +4,7 @@
 #include <atomic>
 #include <future>
 
+#include <koinos/net/types.hpp>
 #include <koinos/net/protocol/jsonrpc/fields.hpp>
 #include <koinos/net/transport/http/client.hpp>
 #include <koinos/pack/rt/json.hpp>
@@ -11,12 +12,12 @@
 
 namespace koinos::net::protocol::jsonrpc {
 
-typedef std::variant<std::any, koinos::exception> call_result;
+typedef std::variant<std::any, koinos::net::exception> call_result;
 
 class client {
    private:
       transport::http::client                      _client;
-      std::unique_ptr< std::atomic< uint32_t > >   _next_id = 0;
+      std::unique_ptr< std::atomic< uint32_t > >   _next_id;
 
       template< typename Params >
       typename std::enable_if_t< koinos::pack::jsonifiable< Params >::value, nlohmann::json >
@@ -81,7 +82,7 @@ class client {
                      auto j = std::any_cast< nlohmann::json >( a );
                      koinos::pack::from_json( j, result );
                   },
-                  []( const koinos::exception& e )
+                  []( const koinos::net::exception& e )
                   {
                      throw e;
                   }

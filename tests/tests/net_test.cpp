@@ -356,37 +356,37 @@ BOOST_AUTO_TEST_CASE( client_tests )
 
    request_handler->add_method_handler( "parse_error", []( const json& ) -> json
    {
-      throw jsonrpc::parse_error( "test parse_error" );
+      throw jsonrpc::exception( jsonrpc::error_code::parse_error, "test parse_error" );
       return json();
    });
 
    request_handler->add_method_handler( "invalid_request", []( const json& ) -> json
    {
-      throw jsonrpc::invalid_request( "test invalid_request" );
+      throw jsonrpc::exception( jsonrpc::error_code::invalid_request, "test invalid_request" );
       return json();
    });
 
    request_handler->add_method_handler( "invalid_params", []( const json& ) -> json
    {
-      throw jsonrpc::invalid_params( "test invalid_params" );
+      throw jsonrpc::exception( jsonrpc::error_code::invalid_params, "test invalid_params" );
       return json();
    });
 
    request_handler->add_method_handler( "internal_error", []( const json& ) -> json
    {
-      throw jsonrpc::internal_error( "test internal_error" );
+      throw jsonrpc::exception( jsonrpc::error_code::internal_error, "test internal_error" );
       return json();
    });
 
    request_handler->add_method_handler( "server_error", []( const json& ) -> json
    {
-      throw jsonrpc::server_error( "test server_error" );
+      throw jsonrpc::exception( jsonrpc::error_code::server_error, "test server_error" );
       return json();
    });
 
    // 100 ms timeout
    koinos::net::client c;
-   c = koinos::net::protocol::jsonrpc::client( 100 );
+   c = jsonrpc::client( 100 );
    c.connect( endpoint );
 
    BOOST_TEST_MESSAGE( "Test correct sychronous calls" );
@@ -409,38 +409,59 @@ BOOST_AUTO_TEST_CASE( client_tests )
    {
       c.call< uint32_t >( "parse_error", json::object_t() );
       BOOST_REQUIRE( false );
-   } catch( koinos::net::protocol::jsonrpc::parse_error& ) {}
+   }
+   catch( const koinos::net::exception& e )
+   {
+      BOOST_REQUIRE_EQUAL( e.what(), "test parse_error" );
+   }
    BOOST_TEST_MESSAGE( "Test jsonrpc error handling" );
 
    try
    {
       c.call< uint32_t >( "invalid_request", json::object_t() );
       BOOST_REQUIRE( false );
-   } catch( koinos::net::protocol::jsonrpc::invalid_request& ) {}
+   }
+   catch( const koinos::net::exception& e )
+   {
+      BOOST_REQUIRE_EQUAL( e.what(), "test invalid_request" );
+   }
 
    try
    {
       c.call< uint32_t >( "sub", json{{"a", 1}, {"b", 2}} );
       BOOST_REQUIRE( false );
-   } catch( koinos::net::protocol::jsonrpc::method_not_found& ) {}
+   }
+   catch( const koinos::net::exception& e ) {}
 
    try
    {
       c.call< uint32_t >( "invalid_params", json::object_t() );
       BOOST_REQUIRE( false );
-   } catch( koinos::net::protocol::jsonrpc::invalid_params& ) {}
+   }
+   catch( const koinos::net::exception& e )
+   {
+      BOOST_REQUIRE_EQUAL( e.what(), "test invalid_params" );
+   }
 
    try
    {
       c.call< uint32_t >( "internal_error", json::object_t() );
       BOOST_REQUIRE( false );
-   } catch( koinos::net::protocol::jsonrpc::internal_error& ) {}
+   }
+   catch( const koinos::net::exception& e )
+   {
+      BOOST_REQUIRE_EQUAL( e.what(), "test internal_error" );
+   }
 
    try
    {
       c.call< uint32_t >( "server_error", json::object_t() );
       BOOST_REQUIRE( false );
-   } catch( koinos::net::protocol::jsonrpc::server_error& ) {}
+   }
+   catch( const koinos::net::exception& e )
+   {
+      BOOST_REQUIRE_EQUAL( e.what(), "test server_error" );
+   }
 
    BOOST_TEST_MESSAGE( "Test closing and reconnecting" );
    BOOST_REQUIRE( c.is_open() );

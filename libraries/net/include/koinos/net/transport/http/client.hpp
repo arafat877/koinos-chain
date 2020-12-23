@@ -1,7 +1,6 @@
 #pragma once
 
 #include <any>
-#include <chrono>
 #include <deque>
 #include <future>
 #include <mutex>
@@ -12,9 +11,7 @@
 #include <boost/beast/core.hpp>
 #include <boost/beast/version.hpp>
 
-#include <boost/thread/sync_bounded_queue.hpp>
-
-#include <koinos/exception.hpp>
+#include <koinos/net/transport/http/types.hpp>
 
 #define DEFAULT_REQUEST_TIMEOUT_MS 10000
 
@@ -29,15 +26,13 @@ namespace
 using tcp = net::ip::tcp;
 using stream_protocol = net::generic::stream_protocol;
 
-KOINOS_DECLARE_EXCEPTION( http_exception );
-
 /**
  * Call result allows sending of exceptions from parsing of the response
  * back to the caller. std::any should contain a parsed response and
  * koinos::exception an exception that would have been thrown as a result
  * of parsing a bad response.
  */
-using call_result = std::variant< std::any, koinos::exception >;
+using call_result = std::variant< std::any, koinos::net::exception >;
 
 /**
  * Responses are multiplexed by a protocol provided id. (Such as jsonrpc id
@@ -116,7 +111,7 @@ class client
       template< typename Endpoint >
       void connect( const Endpoint& endpoint )
       {
-         if( is_open() ) KOINOS_THROW( http_exception, "http client is already open" );
+         if( is_open() ) throw exception( "http client is already open" );
 
          _endpoint = endpoint;
 

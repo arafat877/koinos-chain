@@ -22,7 +22,6 @@ public:
 
    jsonrpc::request parse_request( const std::string& payload ) const
    {
-      LOG(info) << payload;
       jsonrpc::request req;
 
       try
