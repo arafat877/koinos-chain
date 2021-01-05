@@ -14,6 +14,14 @@ include("cmake/HunterGate.cmake")
 
 option(HUNTER_RUN_UPLOAD "Upload cache binaries" OFF)
 
+set(
+   HUNTER_CACHE_SERVERS
+   "https://github.com/koinos/hunter-cache"
+   CACHE
+   STRING
+   "Default cache server"
+)
+
 HunterGate(
    URL "https://github.com/cpp-pm/hunter/archive/v0.23.287.tar.gz"
    SHA1 "69371a638d697bbf09f4f08dd0aad996efcc79d9"
@@ -21,11 +29,11 @@ HunterGate(
 )
 
 set(
-    HUNTER_PASSWORDS_PATH
-    "${CMAKE_CURRENT_LIST_DIR}/cmake/Hunter/passwords.cmake"
-    CACHE
-    FILEPATH
-    "Hunter passwords"
+   HUNTER_PASSWORDS_PATH
+   "${CMAKE_CURRENT_LIST_DIR}/cmake/Hunter/passwords.cmake"
+   CACHE
+   FILEPATH
+   "Hunter passwords"
 )
 
 project( koinos )
