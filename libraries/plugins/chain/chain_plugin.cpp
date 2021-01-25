@@ -1,10 +1,14 @@
 #include <koinos/plugins/chain/chain_plugin.hpp>
 #include <koinos/plugins/chain/reqhandler.hpp>
 
+#include <koinos/mq/message_broker.hpp>
+
 #include <koinos/log.hpp>
 #include <koinos/util.hpp>
 
 #include <mira/database_configuration.hpp>
+#include <atomic>
+#include <thread>
 
 namespace koinos::plugins::chain {
 
@@ -20,10 +24,13 @@ class chain_plugin_impl
 
       void write_default_database_config( bfs::path &p );
 
-      bfs::path            state_dir;
-      bfs::path            database_cfg;
+      bfs::path                  state_dir;
+      bfs::path                  database_cfg;
 
-      reqhandler           _reqhandler;
+      reqhandler                 _reqhandler;
+//      koinos::mq::message_broker _message_broker;
+      std::atomic< bool >            _process_messages = true;
+      std::unique_ptr< std::thread > _message_thread;
 };
 
 void chain_plugin_impl::write_default_database_config( bfs::path &p )
@@ -109,6 +116,34 @@ void chain_plugin::plugin_startup()
    }
 
    my->_reqhandler.start_threads();
+
+   my->_process_messages = true;
+   my->_message_thread = std::make_unique< std::thread >( [&]
+   {
+      koinos::mq::message_broker broker;
+      broker.connect( "localhost", 5672 );
+      broker.queue_declare( "my_cool_queue" );
+      broker.queue_bind( "my_cool_queue", koinos::mq::exchange::event, "my_cool_binding_key" );
+      for (;;)
+      {
+         if ( !my->_process_messages )
+            break;
+
+         auto result = broker.consume();
+
+         if ( result.first == koinos::mq::error_code::time_out )
+            continue;
+
+         if ( result.first != koinos::mq::error_code::success )
+         {
+            LOG(error) << "something bad has happened";
+         }
+         else
+         {
+            LOG(info) << "message: " << result.second.value().data;
+         }
+      }
+   } );
 }
 
 void chain_plugin::plugin_shutdown()
@@ -116,6 +151,8 @@ void chain_plugin::plugin_shutdown()
    LOG(info) << "closing chain database";
    KOINOS_TODO( "We eventually need to call close() from somewhere" )
    //my->db.close();
+   my->_process_messages = false;
+   my->_message_thread->join();
    my->_reqhandler.stop_threads();
    LOG(info) << "database closed successfully";
 }
