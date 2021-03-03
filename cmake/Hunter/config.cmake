@@ -39,34 +39,40 @@ hunter_config(koinos_log
    GIT_SUBMODULE "libraries/log"
    CMAKE_ARGS
       BUILD_TESTS=OFF
+      CMAKE_CXX_FLAGS=-DKOINOS
 )
 
 hunter_config(koinos_util
    GIT_SUBMODULE "libraries/util"
    CMAKE_ARGS
       BUILD_TESTS=OFF
+      CMAKE_CXX_FLAGS=-DKOINOS
 )
 
 hunter_config(koinos_types
    GIT_SUBMODULE "libraries/types"
    CMAKE_ARGS
       BUILD_TESTS=OFF
+      CMAKE_CXX_FLAGS=-DKOINOS
 )
 
 hunter_config(koinos_exception
    GIT_SUBMODULE "libraries/exception"
    CMAKE_ARGS
       BUILD_TESTS=OFF
+      CMAKE_CXX_FLAGS=-DKOINOS
 )
 
 hunter_config(koinos_crypto
    GIT_SUBMODULE "libraries/crypto"
    CMAKE_ARGS
       BUILD_TESTS=OFF
+      CMAKE_CXX_FLAGS=-DKOINOS
 )
 
 hunter_config(koinos_mq
    GIT_SUBMODULE "libraries/mq"
    CMAKE_ARGS
       BUILD_TESTS=OFF
+      CMAKE_CXX_FLAGS=-DKOINOS
 )
